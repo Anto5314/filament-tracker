@@ -1,0 +1,25 @@
+# Environnement local (adresse imprimante, tokens)
+.env
+*.env
+.env.*
+
+# Données
+*.db
+*.db-journal
+/data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editeurs / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Artefacts
+src.tar.gz
+*.tar.gz
+/tmp/

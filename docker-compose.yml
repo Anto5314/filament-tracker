@@ -1,0 +1,37 @@
+services:
+  spoolman:
+    image: ghcr.io/donkie/spoolman:latest
+    restart: unless-stopped
+    ports:
+      - "7912:8000"
+    volumes:
+      - spoolman-data:/home/app/.local/share/spoolman
+    environment:
+      - SPOOLMAN_LOGGING_LEVEL=INFO
+    networks:
+      - filament-net
+
+  collector:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - spoolman
+    ports:
+      - "8123:8123"
+    volumes:
+      - collector-data:/data
+    environment:
+      - K1_HOST=${K1_HOST:-192.168.1.41}
+      - K1_PORT=${K1_PORT:-9999}
+      - SPOOLMAN_URL=http://spoolman:8000
+      - WEB_PORT=8123
+    networks:
+      - filament-net
+
+volumes:
+  spoolman-data:
+  collector-data:
+
+networks:
+  filament-net:
+    driver: bridge

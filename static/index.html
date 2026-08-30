@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>🧵 Filament Tracker</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖨️</text></svg>">
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8;
+    --green: #22c55e; --red: #ef4444; --blue: #3b82f6; --yellow: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); padding: 12px 12px 90px;
+    max-width: 640px; margin: 0 auto;
+  }
+  h1 { font-size: 20px; margin: 4px 0 2px; display: flex; align-items: center; gap: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .stat-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .stat {
+    flex: 1; background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px; text-align: center;
+  }
+  .stat .num { font-size: 22px; font-weight: 700; }
+  .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .session {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px; margin-bottom: 10px;
+  }
+  .sess-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .sess-file { font-weight: 600; font-size: 14px; word-break: break-word; }
+  .badge { padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .b-printing { background: #1e3a5f; color: #60a5fa; }
+  .b-completed { background: #14351f; color: var(--green); }
+  .b-error { background: #3b1416; color: var(--red); }
+  .b-stopped { background: #33260f; color: var(--yellow); }
+  .b-paused { background: #222; color: var(--muted); }
+  .sess-meta { color: var(--muted); font-size: 12px; margin-top: 5px; }
+  .sess-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  button {
+    background: var(--blue); color: #fff; border: none; border-radius: 10px;
+    padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button.red { background: var(--red); }
+  button.green { background: var(--green); color: #052e16; }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
+  select, input[type=number] {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px; font-size: 14px; width: 100%;
+    font-family: inherit;
+  }
+  .form-row { margin-bottom: 8px; }
+  .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .fab {
+    position: fixed; bottom: 18px; right: 18px; width: 54px; height: 54px;
+    border-radius: 50%; background: var(--green); color: #052e16; border: none;
+    font-size: 26px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
+  }
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 84px;
+    background: #052e16; color: var(--green); padding: 10px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  #modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    align-items: center; justify-content: center; padding: 20px; z-index: 10;
+  }
+  #modal.open { display: flex; }
+  .modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; width: 100%; max-width: 360px; }
+  .modal-card h3 { margin-bottom: 12px; font-size: 16px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .progress-wrap { height: 6px; background: var(--border); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--blue); border-radius: 3px; }
+
+  /* Miniatures des modèles */
+  .sess-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .sess-thumb {
+    width: 56px; height: 56px; object-fit: contain;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: #0b1526; flex-shrink: 0;
+  }
+  .sess-thumb-none {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  #m-thumb-preview {
+    max-width: 160px; max-height: 160px; border-radius: 12px;
+    border: 1px solid var(--border); background: #0b1526;
+    display: none; margin: 0 auto 8px; object-fit: contain;
+  }
+  #m-thumb-preview.show { display: block; }
+
+  /* Onglets + bibliothèque imprimante */
+  .tabs { display: flex; gap: 8px; margin: 12px 0; }
+  .tab {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-weight: 600; cursor: pointer;
+    transition: all .15s;
+  }
+  .tab.active { background: var(--blue); color: #0a1420; border-color: transparent; }
+  .k1-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .k1-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 8px; overflow: hidden; cursor: pointer; transition: all .15s;
+  }
+  .k1-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+  .k1-card img { width: 100%; height: 90px; object-fit: contain; border-radius: 8px; background: #0b1526; }
+  .k1-card .k1-name {
+    font-size: 10px; margin-top: 6px; line-height: 1.3; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .k1-card .k1-mat { font-size: 10px; font-weight: 600; color: var(--blue); margin-top: 2px; }
+  .k1-empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 13px; }
+  .k1-refresh { width: 100%; margin-top: 10px; padding: 9px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>🧵 Filament Tracker</h1>
+<div class="sub" id="conn">Connexion…</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="num" id="s-total">–</div><div class="lbl">Impressions</div></div>
+  <div class="stat"><div class="num" id="s-err">–</div><div class="lbl">Erreurs</div></div>
+  <div class="stat"><div class="num" id="s-conso">–</div><div class="lbl">Filament (g)</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="tab-journal" onclick="showTab('journal')">📋 Journal</button>
+  <button class="tab" id="tab-imprimante" onclick="showTab('imprimante')">📁 Imprimante</button>
+</div>
+
+<div id="sessions"></div>
+
+<div id="k1files" style="display:none">
+  <div class="k1-grid" id="k1-grid"></div>
+</div>
+
+<button class="fab" onclick="openManual()">+</button>
+<div class="toast" id="toast">✓</div>
+
+<div id="modal">
+  <div class="modal-card">
+    <h3 id="m-title">Associer un filament</h3>
+    <img id="m-thumb-preview" alt="aperçu du modèle">
+    <div class="form-row"><label>📄 Analyser un .gcode (auto-remplit la conso + l'aperçu)</label>
+      <input type="file" id="m-filepicker" accept=".gcode,.g,.gco" style="font-size:12px">
+    </div>
+    <div class="form-row"><label>Fichier / modèle imprimé</label><input id="m-file" placeholder="Nom du fichier…"></div>
+    <div class="form-row"><label>Filament (bobine)</label><select id="m-spool"></select></div>
+    <div class="form-row"><label>Filament consommé (grammes)</label><input id="m-grams" type="number" step="0.1" min="0" placeholder="0.0"></div>
+    <div class="form-row" style="align-items:center">
+      <label style="margin:0;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">
+        <input type="checkbox" id="m-debit" checked> 🪙 Décompter le poids de la bobine
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Annuler</button>
+      <button class="green" onclick="saveSession()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const API = '';
+let sessions = [];
+let spools = [];
+let editingId = null;
+let pendingThumbId = null;
+
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: {'Content-Type': 'application/json'},
+    ...opts
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+}
+
+function badge(status) {
+  return `<span class="badge b-${status}">${status}</span>`;
+}
+
+async function load() {
+  try {
+    const h = await api('/api/health');
+    $('conn').textContent = `K1: ${h.k1_url.replace('ws://','')} • ${h.connected ? 'impression en cours' : 'en veille'}`;
+  } catch (e) {
+    $('conn').textContent = '⚠️ Collecteur injoignable';
+  }
+  try {
+    sessions = await api('/api/sessions');
+  } catch (e) { sessions = []; }
+  try {
+    const sp = await api('/api/spools');
+    spools = Array.isArray(sp) ? sp : [];
+  } catch (e) { spools = []; }
+  render();
+}
+
+function render() {
+  const total = sessions.length;
+  const errs = sessions.filter(s => s.status === 'error').length;
+  const conso = sessions.reduce((a, s) => a + (s.filament_grams || 0), 0);
+  $('s-total').textContent = total;
+  $('s-err').textContent = errs;
+  $('s-conso').textContent = conso.toFixed(1);
+
+  const box = $('sessions');
+  box.innerHTML = '';
+  if (!sessions.length) {
+    box.innerHTML = '<div class="empty">Aucune impression enregistrée.<br>Lance une impression depuis Creality Print, ou clique le bouton vert pour saisir manuellement.</div>';
+    return;
+  }
+  sessions.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'session';
+    const spoolName = s.spool_id ? (spoolById(s.spool_id) || `Bobine #${s.spool_id}`) : null;
+    const thumbHtml = s.thumb_url
+      ? `<img class="sess-thumb" src="${s.thumb_url}" alt="modèle" loading="lazy">`
+      : `<div class="sess-thumb sess-thumb-none">🖨️</div>`;
+    div.innerHTML = `
+      <div class="sess-top">
+        <div class="sess-title">
+          ${thumbHtml}
+          <div>
+            <div class="sess-file">${escapeHtml(s.file_name || 'inconnu')}</div>
+            <div class="sess-meta">
+              ${fmtDate(s.start_time)}${s.end_time ? ' → ' + fmtDate(s.end_time) : ''}
+              ${s.error ? ' • ❌ ' + escapeHtml(s.error) : ''}
+              ${spoolName ? ' • 🧵 ' + spoolName : ''}
+              ${s.filament_grams ? ' • ' + s.filament_grams + ' g' : ''}
+              ${s.material_mm ? ' • ' + Math.round(s.material_mm) + ' mm' : ''}
+            </div>
+          </div>
+        </div>
+        ${badge(s.status || '?')}
+      </div>
+      ${s.status === 'completed' || s.status === 'error' || s.status === 'stopped' ?
+        `<div class="sess-actions">
+          <button onclick="editSession('${s.id}')">🧵 Associer filament</button>
+          ${s.status === 'completed' ? `<button class="ghost" onclick="markError('${s.id}')">❌ Marquer erreur</button>` : ''}
+        </div>` : ''}
+    `;
+    box.appendChild(div);
+  });
+}
+
+function spoolById(id) {
+  const sp = spools.find(x => x.id === id);
+  if (!sp) return null;
+  const f = sp.filament;
+  return `${f ? f.name || 'Spool' : 'Spool'} (${sp.remaining_weight || 0}g rest.)`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fillSpoolSelect(sel, selected) {
+  sel.innerHTML = '<option value="">— Choisir une bobine —</option>';
+  spools.forEach(sp => {
+    const f = sp.filament || {};
+    const opt = document.createElement('option');
+    opt.value = sp.id;
+    opt.textContent = `${f.name || 'Spool'} — ${f.material || ''} ${f.color_hex ? '●' : ''} (${sp.remaining_weight || '?'}g)`;
+    if (sp.id === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function openManual() {
+  editingId = null;
+  pendingThumbId = null;
+  $('m-title').textContent = '➕ Saisie manuelle';
+  $('m-file').value = '';
+  $('m-grams').value = '';
+  $('m-filepicker').value = '';
+  $('m-thumb-preview').classList.remove('show');
+  $('m-thumb-preview').removeAttribute('src');
+  fillSpoolSelect($('m-spool'));
+  $('m-debit').checked = true;  // nouvelle saisie → décompte par défaut
+  $('modal').classList.add('open');
+}
+
+// Analyse d'un .gcode : pré-remplit fichier + conso estimée + aperçu
+$('m-filepicker').addEventListener('change', async function () {
+  const f = this.files[0];
+  if (!f) return;
+  toast('📄 Analyse de ' + f.name + '…');
+  try {
+    const fd = new FormData();
+    fd.append('file', f);
+    const r = await fetch(API + '/api/gcode/analyze', {method: 'POST', body: fd});
+    const data = await r.json();
+    if (!r.ok) { toast('❌ ' + (data.error || 'erreur')); return; }
+    $('m-file').value = f.name;
+    if (data.grams_estimate) {
+      $('m-grams').value = data.grams_estimate;
+      toast('✓ ' + data.grams_estimate + ' g estimés');
+    }
+    if (data.thumb_id) {
+      pendingThumbId = data.thumb_id;
+      $('m-thumb-preview').src = '/thumbs/' + data.thumb_id;
+      $('m-thumb-preview').classList.add('show');
+    } else {
+      toast('⚠️ pas de miniature dans ce fichier');
+    }
+  } catch (e) { toast('❌ ' + e.message); }
+});
+
+function editSession(id) {
+  const s = sessions.find(x => x.id === id);
+  if (!s) return;
+  editingId = id;
+  $('m-title').textContent = '🧵 Associer filament — ' + s.file_name;
+  $('m-file').value = s.file_name || '';
+  $('m-grams').value = s.filament_grams || '';
+  fillSpoolSelect($('m-spool'), s.spool_id);
+  // Sessions historiques importées (k1h*) : déjà consommées avant la pesée des
+  // bobines → par défaut on NE décompte PAS (sinon double comptage).
+  const historical = String(id).startsWith('k1h');
+  $('m-debit').checked = !historical;
+  $('modal').classList.add('open');
+}
+
+function closeModal() { $('modal').classList.remove('open'); }
+
+async function saveSession() {
+  const file = $('m-file').value.trim();
+  const grams = parseFloat($('m-grams').value || '0') || 0;
+  const spoolId = $('m-spool').value ? parseInt($('m-spool').value) : null;
+  const debit = $('m-debit').checked;
+  if (!file) { toast('Indique un fichier'); return; }
+  if (!spoolId) { toast('Choisis une bobine'); return; }
+  try {
+    if (editingId) {
+      await api('/api/sessions/' + editingId + '/spool', {
+        method: 'POST',
+        body: JSON.stringify({spool_id: spoolId, filament_grams: grams, debit: debit})
+      });
+    } else {
+      // création manuelle : on l'ajoute en base via une session*
+      await api('/api/sessions/' + Date.now().toString(16) + '/manual', {
+        method: 'PUT',
+        body: JSON.stringify({file_name: file, thumb_id: pendingThumbId, debit: debit})
+      });
+    }
+    toast('✓ Enregistré');
+    closeModal();
+    load();
+  } catch (e) {
+    toast('❌ Erreur: ' + e.message);
+  }
+}
+
+async function markError(id) {
+  if (!confirm('Marquer cette impression comme ÉCHOUÉE ?')) return;
+  try {
+    await api('/api/sessions/' + id + '/status', {
+      method: 'POST',
+      body: JSON.stringify({status: 'error', error: 'marqué erreur (manuel)'})
+    });
+    toast('✓ Marqué en erreur');
+    load();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+function showTab(name) {
+  $('tab-journal').classList.toggle('active', name === 'journal');
+  $('tab-imprimante').classList.toggle('active', name === 'imprimante');
+  $('sessions').style.display = name === 'journal' ? '' : 'none';
+  $('k1files').style.display = name === 'imprimante' ? '' : 'none';
+  if (name === 'imprimante') loadK1Files();
+}
+
+let k1Files = [];
+let activeSessionId = null;
+
+function fmtTime(s) {
+  if (!s && s !== 0) return '';
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  if (h) return h + 'h' + String(m).padStart(2, '0');
+  return m + 'min';
+}
+
+async function loadK1Files() {
+  const grid = $('k1-grid');
+  try {
+    const r = await fetch(API + '/api/k1/files');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'erreur');
+    k1Files = d.files || [];
+    if (!k1Files.length) {
+      grid.innerHTML = '<div class="k1-empty">📁 Aucun fichier — la liste se remplit ~1 min après l\'allumage<br><br><button class="k1-refresh" onclick="refreshK1()">🔄 Rafraîchir</button></div>';
+      return;
+    }
+    grid.innerHTML = k1Files.map((f, i) => `
+      <div class="k1-card" onclick="useK1File(${i})" title="${escapeHtml(f.name)}">
+        ${f.thumb_url ? `<img src="${f.thumb_url}" loading="lazy" alt="">` : '<div style="height:90px;display:flex;align-items:center;justify-content:center;background:#0b1526;border-radius:8px;color:var(--muted)">🖨️</div>'}
+        <div class="k1-name">${escapeHtml(f.name)}</div>
+        <div class="k1-mat">${escapeHtml((f.material || '').replace(/;/g, ' + '))}${f.grams ? ' &nbsp;•&nbsp; ⚖️ ' + f.grams + 'g' : ''}${f.time_s ? ' &nbsp;•&nbsp; ⏱ ' + fmtTime(f.time_s) : ''}</div>
+      </div>`).join('') +
+      '<button class="k1-refresh" onclick="refreshK1()">🔄 Rafraîchir la liste</button>';
+  } catch (e) {
+    grid.innerHTML = '<div class="k1-empty">❌ ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+async function refreshK1() {
+  toast('🔄 Demande de rafraîchissement…');
+  // Déclenche un scan immédiat : on appelle l'API puis on recharge après 20s
+  await loadK1Files();
+  setTimeout(loadK1Files, 15000);
+}
+
+function useK1File(idx) {
+  const f = k1Files[idx];
+  if (!f) return;
+  // Associer ce fichier à une session ? Sinon ouvre la saisie pré-remplie
+  const recent = sessions.filter(s => s.status === 'completed' || s.status === 'error' || s.status === 'stopped');
+  if (recent.length) {
+    const names = recent.map((s, i) => `${i + 1}. ${s.file_name}`).join('\n');
+    const pick = prompt(`🧵 Associer « ${f.name} » à quelle session ?\n(1-${recent.length}, ou vide = nouvelle saisie)\n\n${names}`);
+    if (pick === null) return;
+    const n = parseInt(pick, 10);
+    if (n >= 1 && n <= recent.length) {
+      activeSessionId = recent[n - 1].id;
+    } else {
+      activeSessionId = null;
+    }
+  } else {
+    activeSessionId = null;
+  }
+  editingId = activeSessionId;
+  pendingThumbId = f.thumb_url ? f.thumb_url.split('/').pop() : null;
+  $('m-debit').checked = !(activeSessionId && String(activeSessionId).startsWith('k1h'));
+  $('m-title').textContent = activeSessionId ? '🧵 Associer filament — ' + f.name : '➕ Saisie — ' + f.name;
+  $('m-file').value = f.name;
+  $('m-grams').value = f.grams || '';
+  if (pendingThumbId) {
+    $('m-thumb-preview').src = f.thumb_url;
+    $('m-thumb-preview').classList.add('show');
+  } else {
+    $('m-thumb-preview').classList.remove('show');
+  }
+  fillSpoolSelect($('m-spool'));
+  $('modal').classList.add('open');
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+load();
+setInterval(load, 8000);
+</script>
+</body>
+</html>
