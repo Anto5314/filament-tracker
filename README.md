@@ -200,7 +200,19 @@ Le protocole CrealityOS a été **reverse-engineer et validé sur une K1SE réel
 
 ## 🖼️ Captures d'écran
 
-*À venir — l'interface est accessible à http://<serveur>:8123 une fois installé.*
+**📋 Journal des impressions** — chaque impression est enregistrée automatiquement (statut, durée, filament consommé) :
+
+![Journal des impressions](screenshots/journal.png)
+
+**📁 Bibliothèque de l'imprimante** — tous les fichiers G-code de la K1SE avec miniatures et quantités estimées (matière, grammes, durée) :
+
+![Bibliothèque de l'imprimante](screenshots/bibliotheque.png)
+
+**📱 Vue mobile** — interface responsive, installable comme PWA sur téléphone :
+
+![Vue mobile](screenshots/mobile.png)
+
+*Les captures montrent l'interface réelle (adresse IP de démonstration floutée).*
 
 ---
 
