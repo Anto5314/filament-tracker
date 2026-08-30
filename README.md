@@ -171,6 +171,25 @@ K1_HOST=127.0.0.1 K1_PORT=9999 SPOOLMAN_URL=http://127.0.0.1:8000 python3 collec
 
 ---
 
+## 🎯 Compatibilité
+
+Le protocole CrealityOS a été **reverse-engineer et validé sur une K1SE réelle** (firmware `DWIN CR4CU220812S11 1.3.5.22`). Voici ce qu'il faut savoir pour les autres utilisateurs :
+
+| Appareil / firmware | Compatibilité |
+|---|---|
+| **K1SE** — même firmware | ✅ Fonctionne à 100 % (validé en conditions réelles) |
+| **K1SE** — firmware plus récent ou plus ancien | 🟡 Très probablement fonctionnel (les clés WS sont stables chez Creality), mais non garanti |
+| **K1 / K1C / K1 Max** | 🟡 Protocole CrealityOS très proche, mais à tester sur votre machine |
+
+**Points pratiques :**
+- Le collecteur se connecte au **WebSocket port 9999** — vérifiez que votre imprimante est sur le même réseau local et que le port n'est pas bloqué par le pare-feu.
+- Une fois connecté, **tout est automatique** : historique importé, fichiers + miniatures synchronisés, journal mis à jour en direct.
+- Si votre firmware ne répond pas à la combinaison de requêtes, ouvrez une **issue GitHub** avec votre version de firmware — nous pourrons l'adapter.
+
+**⚠️ Ce projet n'a aucun lien avec Creality.** Le protocole a été découvert par observation du trafic réseau ; il peut changer à tout moment avec une mise à jour du firmware.
+
+---
+
 ## 🧠 Notes importantes
 
 - **Décompte du filament** : le collecteur lit `usagematerial` (mm) envoyé par l'imprimante, le convertit en grammes avec la densité du filament (défaut 1,24 g/cm³ pour le PLA) et décompte `remaining_weight` dans Spoolman.
