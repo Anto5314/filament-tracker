@@ -356,6 +356,11 @@ class Tracker:
                 add_session(sid, file_name or self.last_file or "inconnu", "printing", now)
                 self.current = sid
                 log.info("▶ Début impression: %s (%s)", file_name, sid)
+                # Course live/historique : l'import k1h peut avoir été créé AVANT
+                # la session live (historique périodique qui voit l'impression en
+                # cours). On supprime les k1h jumeaux (même fichier, ±3 min) —
+                # la session live fait foi pour la suite.
+                _purge_duplicate_k1h(file_name or self.last_file or "inconnu", now)
             else:
                 update_session(self.current, progress=prog, material_mm=mat_mm)
         elif status in ("completed", "error", "stopped", "paused"):
@@ -569,6 +574,34 @@ async def _sync_k1_thumbnails(flist: list):
         log.warning("Sync miniatures K1 échoué: %s", exc)
 
 
+def _purge_duplicate_k1h(file_name: str, start_time: str):
+    """Supprime les sessions historiques k1h* qui sont des jumeaux d'une
+    impression suivie en LIVE (même fichier, début ±3 min). La session live
+    fait foi : le k1h est un artefact créé par l'import historique périodique
+    qui a vu l'impression en cours AVANT la création de la session live."""
+    if not file_name or not start_time:
+        return
+    try:
+        from datetime import timedelta
+        t0 = datetime.fromisoformat(start_time)
+        lo = (t0 - timedelta(minutes=3)).isoformat()
+        hi = (t0 + timedelta(minutes=3)).isoformat()
+        base = os.path.basename(file_name)
+        con = db_conn()
+        rows = con.execute(
+            "SELECT id FROM sessions WHERE id LIKE 'k1h%' "
+            "AND (file_name = ? OR file_name LIKE ?) "
+            "AND start_time BETWEEN ? AND ?",
+            (base, f"%{base}%", lo, hi)).fetchall()
+        for (kid,) in rows:
+            con.execute("DELETE FROM sessions WHERE id = ?", (kid,))
+            log.info("Purge doublon historique: %s (jumeau live %s)", kid, file_name)
+        con.commit()
+        con.close()
+    except Exception as exc:
+        log.warning("Purge k1h jumeaux échouée: %s", exc)
+
+
 def _k1_history_thumb(h: dict) -> str | None:
     """Miniature d'une entrée d'historique K1 : utilise le thumb du fichier
     correspondant dans la bibliothèque (les thumbs d'historique id-based ne
@@ -644,7 +677,7 @@ async def _import_k1_history(hlist: list):
             # en direct pendant l'impression (id ≠ k1h). On cherche une session
             # non-historique avec le même fichier débutée dans ±3 min.
             dup_live = None
-            if not exists and start_time:
+            if start_time:
                 try:
                     from datetime import timedelta
                     t0 = datetime.fromisoformat(start_time)
@@ -671,14 +704,26 @@ async def _import_k1_history(hlist: list):
                         upd["filament_grams"] = grams
                     if not live.get("end_time") and end_time:
                         upd["end_time"] = end_time
-                    # même fichier, même début → même impression : l'historique
-                    # fait foi sur le statut final (completed si fin=1)
-                    if live.get("status") != status:
+                    # même fichier, même début → même impression. Prudence :
+                    # l'historique peut porter un printfinish=0 artefactuel
+                    # (entrée vue en cours → "stopped"; mm=0). On ne rétrograde
+                    # JAMAIS une live "completed", et on ne remplace pas des
+                    # mm réels par 0. La live (WS temps réel) fait foi.
+                    if status == "completed" and live.get("status") != "completed":
+                        upd["status"] = "completed"
+                    elif status != "completed" and not live.get("end_time") \
+                            and live.get("status") in ("printing", None):
                         upd["status"] = status
                     if thumb and not live.get("thumb"):
                         upd["thumb"] = thumb
                     if upd:
                         update_session(dup_live, **upd)
+                # La session live fait foi : si un k1h dupliqué existait déjà
+                # (créé avant la live lors de la course), on le supprime.
+                if exists:
+                    con.execute("DELETE FROM sessions WHERE id = ?", (sid,))
+                    con.commit()
+                    log.info("Doublon historique supprimé (déjà suivi en live): %s", sid)
             elif not exists:
                 add_session(sid, name, status, start_time)
                 updates = {"end_time": end_time, "material_mm": mat_mm,
