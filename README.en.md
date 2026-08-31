@@ -1,6 +1,8 @@
 # 🧵 Filament Tracker
 
-> Filament tracking and print log for the **Creality K1SE 3D printer** — PWA web interface, automatic sync with Spoolman.
+> Filament tracking and print log for the **Creality K1SE 3D printer** — PWA web interface, automatic synchronization with Spoolman.
+
+> ⚠️ **LOCAL USE ONLY** — This project is designed to run on a **trusted local network** (your home network). The API has **no authentication**: **never expose it to the Internet** without adding protection (reverse proxy with password, VPN, etc.). Plain-text connections (HTTP/WebSocket) — home use only.
 
 **🇫🇷 Version française : [README.md](README.md)**
 

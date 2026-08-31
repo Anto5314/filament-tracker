@@ -2,6 +2,8 @@
 
 > Suivi de filament et journal d'impressions pour **imprimante 3D Creality K1SE** — interface web PWA, synchronisation automatique avec Spoolman.
 
+> ⚠️ **USAGE LOCAL UNIQUEMENT** — Ce projet est conçu pour tourner sur un **réseau local de confiance** (ton réseau domestique). L'API n'a **pas d'authentification** : **ne l'expose jamais sur Internet** sans ajouter une protection (reverse-proxy avec mot de passe, VPN, etc.). Connexions en clair (HTTP/WebSocket) — réservé à un usage maison.
+
 **🇬🇧 English version: [README.en.md](README.en.md)**
 
 Filament Tracker se connecte au **WebSocket propriétaire (port 9999)** de la K1SE (firmware CrealityOS), suit les impressions **en temps réel**, importe **l'historique complet** des impressions passées, **télécharge les miniatures** des modèles, et se synchronise avec **Spoolman** pour gérer le décompte du filament sur chaque bobine.
