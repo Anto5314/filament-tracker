@@ -2,7 +2,7 @@
 
 > Suivi de filament et journal d'impressions pour **imprimante 3D Creality K1SE** — interface web PWA, synchronisation automatique avec Spoolman.
 
-> ⚠️ **USAGE LOCAL UNIQUEMENT** — Ce projet est conçu pour tourner sur un **réseau local de confiance** (ton réseau domestique). L'API n'a **pas d'authentification** : **ne l'expose jamais sur Internet** sans ajouter une protection (reverse-proxy avec mot de passe, VPN, etc.). Connexions en clair (HTTP/WebSocket) — réservé à un usage maison.
+> ⚠️ **USAGE LOCAL UNIQUEMENT** — Ce projet est conçu pour tourner sur un **réseau local de confiance** (votre réseau domestique). L'API n'a **pas d'authentification** : **ne l'expose jamais sur Internet** sans ajouter une protection (reverse-proxy avec mot de passe, VPN, etc.). Connexions en clair (HTTP/WebSocket) — réservé à un usage maison.
 
 <div align="center">
 
@@ -23,12 +23,12 @@ Filament Tracker se connecte au **WebSocket propriétaire (port 9999)** de la K1
 
 ## ✨ Pourquoi Filament Tracker ?
 
-Ta K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe aucun moyen simple de savoir ce qui a été imprimé, combien de filament a été consommé, et quelles impressions ont échoué. Filament Tracker comble ce manque :
+Votre K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe aucun moyen simple de savoir ce qui a été imprimé, combien de filament a été consommé, et quelles impressions ont échoué. Filament Tracker comble ce manque :
 
-- **Tu imprimes → le journal se remplit automatiquement** (nom du fichier, statut, filament réellement consommé)
-- **Toutes tes impressions passées sont importées** depuis l'historique de l'imprimante (terminées **et** arrêtées)
-- **Tu vois tes modèles avec leur miniature** dans l'onglet « Filaments »
-- **Tu associes une impression à une bobine** → le poids restant se décompte automatiquement dans Spoolman
+- **Vous imprimez → le journal se remplit automatiquement** (nom du fichier, statut, filament réellement consommé)
+- **Toutes vos impressions passées sont importées** depuis l'historique de l'imprimante (terminées **et** arrêtées)
+- **Vous voyez vos modèles avec leur miniature** dans l'onglet « Filaments »
+- **Vous associez une impression à une bobine** → le poids restant se décompte automatiquement dans Spoolman
 - **Un dashboard temps réel** montre l'état de l'imprimante (températures buse/plateau, fichier en cours, statistiques)
 
 ---
@@ -43,10 +43,10 @@ Ta K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe au
 | 📈 | **Stats mensuelles** | Onglet dédié : impressions / mois, filament consommé (g), durée d'impression, taux de réussite — avec graphique en barres |
 | 🖼️ | **Miniatures des modèles** | Téléchargées depuis l'imprimante (`/downloads/humbnail/*.png` — oui, avec la faute de frappe du firmware !) et affichées dans l'onglet « Filaments » |
 | ⚖️ | **Quantité par modèle** | Le champ `filamentWeight` du slicer est lu pour chaque fichier : matière + grammes estimés + durée d'impression |
-| 🧵 | **Association bobine → impression** | Depuis le journal ou l'onglet Filaments, choisis la bobine utilisée → décompte automatique dans Spoolman |
+| 🧵 | **Association bobine → impression** | Depuis le journal ou l'onglet Filaments, choisissez la bobine utilisée → décompte automatique dans Spoolman |
 | 🪙 | **« Associer sans décompter »** | Pour les bobines **pesées à la main** : les anciennes impressions ne doivent pas re-décompter leur filament (évite le double comptage). Case à cocher, décochée par défaut pour les sessions historiques |
 | 📱 | **PWA mobile** | Installable sur le téléphone (écran d'accueil), interface optimisée mobile |
-| 🖥️ | **Mock K1 inclus** | Un simulateur d'imprimante (`mock_k1.py`) permet de tester toute l'appli sans toucher à ta machine |
+| 🖥️ | **Mock K1 inclus** | Un simulateur d'imprimante (`mock_k1.py`) permet de tester toute l'appli sans toucher à votre machine |
 | 🔄 | **Reconnexion automatique** | Watchdog de silence : si l'imprimante est éteinte ou en veille, le collecteur se reconnecte toutes les 10 s |
 | 🔒 | **Aucun doublon** | L'import d'historique est idempotent et fusionne avec les sessions créées en direct |
 
@@ -125,12 +125,12 @@ Variables d'environnement (fichier `.env` ou `docker-compose.yml`) :
 
 ## 📖 Utilisation
 
-1. **Ajoute tes bobines dans Spoolman** (http://<serveur>:7912) avec leur poids mesuré
-2. **Ouvre l'interface** (http://<serveur>:8123)
+1. **Ajoutez vos bobines dans Spoolman** (http://<serveur>:7912) avec leur poids mesuré
+2. **Ouvrez l'interface** (http://<serveur>:8123)
 3. **Onglet 📊 Dashboard** : état de l'imprimante en direct (connexion, températures buse/plateau, statistiques)
 4. **Onglet 📋 Journal** : toutes les impressions (passées + futures) avec statut et filament
 5. **Onglet 🧵 Filaments** : les bobines Spoolman (poids restant, niveau) + les modèles de l'imprimante avec miniature + quantité + durée
-6. **Clique sur une session ou un modèle** → choisis la bobine → le poids se décompte
+6. **Cliquez sur une session ou un modèle** → choisissez la bobine → le poids se décompte
 
 > 💡 **Astuce mobile** : sur Android/iOS, « Ajouter à l'écran d'accueil » installe Filament Tracker comme une appli.
 
@@ -215,7 +215,7 @@ Familles connues pour utiliser ce protocole (confirmé par la communauté — in
 ## 🧠 Notes importantes
 
 - **Décompte du filament** : le collecteur lit `usagematerial` (mm) envoyé par l'imprimante, le convertit en grammes avec la densité du filament (défaut 1,24 g/cm³ pour le PLA) et décompte `remaining_weight` dans Spoolman.
-- **Bobines pesées** : si tu as pesé tes bobines à la balance, utilise la case « 🪙 Décompter » décochée pour les impressions **antérieures** à la pesée — sinon double comptage.
+- **Bobines pesées** : si vous avez pesé vos bobines à la balance, utilise la case « 🪙 Décompter » décochée pour les impressions **antérieures** à la pesée — sinon double comptage.
 - **Miniatures historiques** : les thumbnails d'historique id-based ne sont pas servis par le firmware → le collecteur rattache la miniature du fichier correspondant.
 
 ---
@@ -246,11 +246,11 @@ Familles connues pour utiliser ce protocole (confirmé par la communauté — in
 
 | Problème | Solution |
 |---|---|
-| L'interface indique « 📡 Hors ligne » | Vérifie `K1_HOST` dans `.env`, que l'imprimante est sur le même réseau local, et que le port 9999 n'est pas bloqué par un pare-feu. |
-| « Spoolman injoignable » | Attends quelques secondes après le démarrage (spoolman démarre en parallèle du collecteur), puis vérifie http://<serveur>:7912. |
+| L'interface indique « 📡 Hors ligne » | Vérifiez `K1_HOST` dans `.env`, que l'imprimante est sur le même réseau local, et que le port 9999 n'est pas bloqué par un pare-feu. |
+| « Spoolman injoignable » | Attendez quelques secondes après le démarrage (spoolman démarre en parallèle du collecteur), puis vérifiez http://<serveur>:7912. |
 | Le journal est vide alors que j'imprime | Une impression en cours apparaît immédiatement dans l'onglet Journal ; l'historique complet s'importe ~1 min après la connexion. |
-| Les miniatures ne s'affichent pas | La liste des fichiers se rafraîchit automatiquement (~1 min) ; tu peux aussi cliquer « 🔄 Rafraîchir » dans l'onglet Filaments. |
-| La consommation semble fausse | Vérifie la densité du filament dans Spoolman (ex. PLA = 1,24 g/cm³) et la case « 🪙 Décompter » pour les bobines pesées à la balance. |
+| Les miniatures ne s'affichent pas | La liste des fichiers se rafraîchit automatiquement (~1 min) ; vous pouvez aussi cliquer « 🔄 Rafraîchir » dans l'onglet Filaments. |
+| La consommation semble fausse | Vérifiez la densité du filament dans Spoolman (ex. PLA = 1,24 g/cm³) et la case « 🪙 Décompter » pour les bobines pesées à la balance. |
 | Mettre à jour | `git pull` puis `docker compose up -d --build` |
 
 ---
