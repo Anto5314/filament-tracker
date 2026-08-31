@@ -200,13 +200,17 @@ The CrealityOS protocol was **reverse-engineered and validated on a real K1SE** 
 
 ## 🖼️ Screenshots
 
+**📊 Printer dashboard** — real-time status (connection, nozzle/bed temperatures, global statistics):
+
+![Printer dashboard](screenshots/dashboard.png)
+
 **📋 Print log** — every print is automatically recorded (status, duration, filament used):
 
 ![Print log](screenshots/journal.png)
 
-**📁 Printer file library** — all K1SE G-code files with thumbnails and estimated quantities (material, grams, duration):
+**🧵 Spools & filaments** — Spoolman inventory (material, color, remaining weight) and association library:
 
-![Printer file library](screenshots/bibliotheque.png)
+![Spools and filaments](screenshots/filaments.png)
 
 **📱 Mobile view** — responsive interface, installable as a PWA on your phone:
 

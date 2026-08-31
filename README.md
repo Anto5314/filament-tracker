@@ -200,13 +200,17 @@ Le protocole CrealityOS a été **reverse-engineer et validé sur une K1SE réel
 
 ## 🖼️ Captures d'écran
 
+**📊 Dashboard imprimante** — état temps réel (connexion, températures buse/plateau, statistiques globales) :
+
+![Dashboard imprimante](screenshots/dashboard.png)
+
 **📋 Journal des impressions** — chaque impression est enregistrée automatiquement (statut, durée, filament consommé) :
 
 ![Journal des impressions](screenshots/journal.png)
 
-**📁 Bibliothèque de l'imprimante** — tous les fichiers G-code de la K1SE avec miniatures et quantités estimées (matière, grammes, durée) :
+**🧵 Bobines & filaments** — inventaire Spoolman (matériau, couleur, poids restant) et bibliothèque d'association :
 
-![Bibliothèque de l'imprimante](screenshots/bibliotheque.png)
+![Bobines et filaments](screenshots/filaments.png)
 
 **📱 Vue mobile** — interface responsive, installable comme PWA sur téléphone :
 
