@@ -138,6 +138,79 @@ def list_sessions(limit=300):
     return [dict(zip(cols, r)) for r in rows]
 
 
+def monthly_stats():
+    """Stats agrégées par mois (année-mois) : impressions, erreurs, filament (g),
+    durée totale (h), consommation moyenne par impression, dernière session."""
+    from collections import OrderedDict
+    con = db_conn()
+    cols = [d[0] for d in con.execute("SELECT * FROM sessions LIMIT 1").description]
+    rows = con.execute("SELECT start_time, end_time, status, filament_grams, material_mm "
+                       "FROM sessions").fetchall()
+    con.close()
+    months = OrderedDict()
+    for start_time, end_time, status, grams, mm in rows:
+        if not start_time:
+            continue
+        try:
+            d = datetime.fromisoformat(start_time)
+        except Exception:
+            continue
+        key = d.strftime("%Y-%m")
+        # Nom du mois en français
+        mois_fr = ["janvier", "février", "mars", "avril", "mai", "juin",
+                   "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+        label = f"{mois_fr[d.month - 1].capitalize()} {d.year}"
+        m = months.setdefault(key, {
+            "month": key, "label": label, "prints": 0,
+            "completed": 0, "errors": 0, "stopped": 0, "grams": 0.0,
+            "mm": 0.0, "seconds": 0, "avg_grams": 0.0,
+        })
+        m["prints"] += 1
+        if status == "completed":
+            m["completed"] += 1
+        elif status == "error":
+            m["errors"] += 1
+        elif status == "stopped":
+            m["stopped"] += 1
+        try:
+            m["grams"] += float(grams or 0)
+        except (TypeError, ValueError):
+            pass
+        try:
+            m["mm"] += float(mm or 0)
+        except (TypeError, ValueError):
+            pass
+        if end_time:
+            try:
+                t0 = datetime.fromisoformat(start_time)
+                t1 = datetime.fromisoformat(end_time)
+                m["seconds"] += max(0, (t1 - t0).total_seconds())
+            except Exception:
+                pass
+    # ordre décroissant (mois récents en premier) + moyenne par impression
+    out = list(months.values())[::-1]
+    for m in out:
+        m["avg_grams"] = round(m["grams"] / m["prints"], 2) if m["prints"] else 0
+        m["grams"] = round(m["grams"], 2)
+        m["mm"] = round(m["mm"], 1)
+        m["seconds"] = int(m["seconds"])
+        m["hours"] = round(m["seconds"] / 3600, 1)
+    # Totaux globaux
+    total = {"prints": sum(m["prints"] for m in out),
+             "completed": sum(m["completed"] for m in out),
+             "errors": sum(m["errors"] for m in out),
+             "stopped": sum(m["stopped"] for m in out),
+             "grams": round(sum(m["grams"] for m in out), 2),
+             "mm": round(sum(m["mm"] for m in out), 1),
+             "hours": round(sum(m["hours"] for m in out), 1)}
+    return {"months": out, "total": total}
+
+
+async def api_stats(request):
+    """GET /api/stats — stats mensuelles + totaux."""
+    return aiohttp.web.json_response(monthly_stats())
+
+
 # ---------- Client K1 ----------
 # Carte des états numériques du firmware Creality K1 (const PRINTER_STATE_MAP)
 K1_STATE_MAP = {"0": "stopped", "1": "printing", "2": "completed",
@@ -996,6 +1069,7 @@ async def build_app():
     app.router.add_get("/api/spools", api_spools)
     app.router.add_get("/api/k1/files", api_k1_files)
     app.router.add_get("/api/health", api_health)
+    app.router.add_get("/api/stats", api_stats)
     app.router.add_get("/", _static)
     app.router.add_get("/thumbs/{tid}", api_thumb)
     app.router.add_get("/{name}", _static)

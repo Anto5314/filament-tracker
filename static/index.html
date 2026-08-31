@@ -239,6 +239,27 @@
   .k1-mat { font-size: 10px; font-weight: 700; color: var(--cyan); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .k1-empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 13px; }
 
+  /* ---------- Stats mensuelles ---------- */
+  .stats-chart {
+    display: flex; align-items: flex-end; gap: 10px; min-height: 130px;
+    padding: 14px 14px 0; margin-bottom: 14px;
+    background: var(--card2); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  .bar {
+    width: 100%; max-width: 56px; border-radius: 8px 8px 2px 2px;
+    background: linear-gradient(180deg, var(--cyan), rgba(34,211,238,.35));
+    min-height: 3px; transition: height .4s ease;
+  }
+  .bar-lbl { font-size: 10px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .bar-val { font-size: 10px; color: var(--cyan); font-weight: 700; }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .stats-table th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+  .stats-table td { padding: 9px 6px; border-bottom: 1px solid rgba(51,65,85,.45); }
+  .stats-table tr:last-child td { border-bottom: none; }
+  .stats-table .mini-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .c-ok { color: #34d399; } .c-err { color: #f87171; } .c-stop { color: #fbbf24; }
+
   /* ---------- Modal / toast ---------- */
   #modal {
     display: none; position: fixed; inset: 0; background: rgba(4,8,12,.72);
@@ -281,6 +302,7 @@
   <button class="tab active" id="tab-dashboard" onclick="showTab('dashboard')">📊 Dashboard</button>
   <button class="tab" id="tab-journal" onclick="showTab('journal')">📋 Journal</button>
   <button class="tab" id="tab-filaments" onclick="showTab('filaments')">🧵 Filaments</button>
+  <button class="tab" id="tab-stats" onclick="showTab('stats')">📈 Stats</button>
 </div>
 
 <div id="dash">
@@ -318,6 +340,17 @@
   <div class="spool-grid" id="spool-grid"></div>
   <div class="sec-title">📁 Bibliothèque K1</div>
   <div class="k1-grid" id="k1-grid"></div>
+</div>
+
+<div id="stats-view" style="display:none">
+  <div class="sec-title">📈 Statistiques mensuelles</div>
+  <div class="stat-row">
+    <div class="stat"><div class="num" id="st-total">–</div><div class="lbl">Totales</div></div>
+    <div class="stat"><div class="num" id="st-grams">–</div><div class="lbl">Filament (g)</div></div>
+    <div class="stat"><div class="num" id="st-hours">–</div><div class="lbl">Heures</div></div>
+  </div>
+  <div class="stats-chart" id="stats-chart"></div>
+  <div id="stats-table"></div>
 </div>
 
 <button class="fab" onclick="openManual()">+</button>
@@ -741,12 +774,62 @@ async function markError(id) {
 
 function showTab(name) {
   activeTab = name;
-  ['dashboard', 'journal', 'filaments'].forEach(t =>
+  ['dashboard', 'journal', 'filaments', 'stats'].forEach(t =>
     $('tab-' + t).classList.toggle('active', t === name));
   $('dash').style.display = name === 'dashboard' ? '' : 'none';
   $('journal-view').style.display = name === 'journal' ? '' : 'none';
   $('filaments-view').style.display = name === 'filaments' ? '' : 'none';
+  $('stats-view').style.display = name === 'stats' ? '' : 'none';
   if (name === 'filaments') loadK1Files();
+  if (name === 'stats') loadStats();
+}
+
+async function loadStats() {
+  try {
+    const st = await api('/api/stats');
+    renderStats2(st);
+  } catch (e) {
+    $('stats-chart').innerHTML = '<div class="empty">❌ ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderStats2(st) {
+  const t = st.total || {};
+  $('st-total').textContent = t.prints || 0;
+  $('st-grams').textContent = (t.grams || 0).toFixed(1);
+  $('st-hours').textContent = (t.hours || 0).toFixed(1);
+  const months = st.months || [];
+  const chart = $('stats-chart');
+  chart.innerHTML = '';
+  if (!months.length) {
+    chart.innerHTML = '<div class="empty">Aucune session pour l\'instant.</div>';
+    return;
+  }
+  const maxG = Math.max(...months.map(m => m.grams || 0), 1);
+  months.slice(0, 12).forEach(m => {
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+    const h = Math.max(2, Math.round((m.grams / maxG) * 85));
+    col.innerHTML = '<div class="bar" style="height:' + h + 'px"></div>' +
+      '<div class="bar-val">' + (m.grams || 0).toFixed(0) + ' g</div>' +
+      '<div class="bar-lbl">' + escapeHtml((m.label || m.month || '').split(' ')[0]) + '</div>';
+    col.title = m.label + ': ' + m.prints + ' impressions, ' + m.grams + ' g, ' + m.hours + ' h';
+    chart.appendChild(col);
+  });
+  const table = $('stats-table');
+  table.innerHTML = '<table class="stats-table"><thead><tr>' +
+    '<th>Mois</th><th>Impressions</th><th>Réussies</th><th>Erreurs</th><th>Arrêtées</th>' +
+    '<th>Filament (g)</th><th>Durée</th><th>Moy. / impression</th></tr></thead><tbody>' +
+    months.map(m => '<tr>' +
+      '<td><strong>' + escapeHtml(m.label || m.month) + '</strong></td>' +
+      '<td>' + m.prints + '</td>' +
+      '<td class="c-ok">' + m.completed + '</td>' +
+      '<td class="c-err">' + m.errors + '</td>' +
+      '<td class="c-stop">' + m.stopped + '</td>' +
+      '<td>' + (m.grams || 0).toFixed(1) + ' g</td>' +
+      '<td>' + (m.hours || 0).toFixed(1) + ' h</td>' +
+      '<td>' + (m.avg_grams || 0).toFixed(1) + ' g</td>' +
+      '</tr>').join('') + '</tbody></table>';
 }
 
 async function loadK1Files() {

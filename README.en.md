@@ -29,6 +29,7 @@ Your K1SE runs **CrealityOS** (Klipper **without Moonraker**): there is no simpl
 | 📋 | **Automatic print log** | Each print starts a session: file, time, status (completed / stopped / failed), duration, measured filament (`usedMaterialLength`) |
 | 📜 | **Retroactive import** | The printer's full history (`historyList`) is imported automatically — every past print shows up in the log |
 | 📊 | **Printer dashboard** | Real-time status: WS connection, nozzle/bed temperatures, current file, global statistics — refreshed every 6 s |
+| 📈 | **Monthly stats** | Dedicated tab: prints / month, filament used (g), print time, success rate — with a bar chart |
 | 🖼️ | **Model thumbnails** | Downloaded from the printer (`/downloads/humbnail/*.png` — yes, with the firmware's typo!) and shown in the "Filaments" tab |
 | ⚖️ | **Quantity per model** | The slicer's `filamentWeight` field is read for each file: material + estimated grams + print duration |
 | 🧵 | **Spool → print linking** | From the log or the Filaments tab, pick the spool used → automatic deduction in Spoolman |
