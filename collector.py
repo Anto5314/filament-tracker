@@ -167,6 +167,19 @@ def _norm_status(raw):
     return s or None
 
 
+def _extract_model(payload):
+    """Nom du modèle : cherché à la racine ET dans reqPrinterPara (les firmwares
+    CrealityOS varient selon la famille)."""
+    inner = payload.get("reqPrinterPara") or payload.get("printPara") or {}
+    candidates = [payload, inner] if isinstance(inner, dict) else [payload]
+    for src in candidates:
+        for key in ("model", "modelName", "printerModel", "deviceModel"):
+            v = src.get(key)
+            if v:
+                return str(v)
+    return None
+
+
 def _extract_file(payload):
     # Certains firmwares imbriquent les infos dans reqPrinterPara
     inner = payload.get("reqPrinterPara") or payload.get("printPara") or {}
@@ -921,7 +934,7 @@ async def api_health(request):
         "spoolman": SPOOLMAN_URL,
         "ws_connected": tracker.ws_connected,
         "printing": tracker.current is not None,
-        "k1_model": lp.get("model") or lp.get("modelName") or None,
+        "k1_model": _extract_model(lp),
         "k1_state": lp.get("state"),
         "k1_nozzle": lp.get("nozzleTemp"),
         "k1_bed": lp.get("bedTemp0"),

@@ -80,6 +80,17 @@
   .pill-paused { background: rgba(148,163,184,.14); color: #cbd5e1; }
   .pill-offline { background: rgba(239,68,68,.1); color: #f87171; border-color: rgba(239,68,68,.32); }
   .live-conn { color: var(--muted); font-size: 12px; text-align: right; }
+  .live-model {
+    margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--cyan);
+    display: flex; align-items: center; gap: 8px; min-height: 20px;
+    letter-spacing: .3px;
+  }
+  .live-model .m-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    background: rgba(16,185,129,.12); color: #34d399; border: 1px solid rgba(16,185,129,.3);
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .live-model .m-badge.tested { background: rgba(34,211,238,.12); color: #22d3ee; border-color: rgba(34,211,238,.35); }
   .live-file {
     margin-top: 12px; font-size: 15px; font-weight: 600; word-break: break-word;
     display: flex; align-items: center; gap: 8px; min-height: 22px;
@@ -278,6 +289,7 @@
       <div class="state-pill pill-idle" id="state-pill"><span class="dot"></span>…</div>
       <div class="live-conn" id="live-conn">—</div>
     </div>
+    <div class="live-model" id="live-model">🖨️ —</div>
     <div class="live-file" id="live-file">—</div>
     <div class="prog-row" id="prog-row" style="display:none">
       <div class="prog-top"><span id="prog-lbl">0 %</span><span id="d-fil">🧵 —</span></div>
@@ -481,8 +493,19 @@ function renderDashboard(h) {
   pill.className = 'state-pill pill-' + state;
   pill.innerHTML = '<span class="dot"></span>' + (STATE_LBL[state] || escapeHtml(state));
   $('live-conn').textContent = h
-    ? (h.k1_model ? 'K1 · ' + escapeHtml(h.k1_model) : 'K1') + ' • ' + (online ? 'connecté' : 'déconnecté')
+    ? (online ? 'connecté' : 'déconnecté')
     : 'collecteur injoignable';
+  // Modèle détecté + badge selon validation
+  const model = h && h.k1_model ? h.k1_model : null;
+  const mEl = $('live-model');
+  if (model) {
+    const tested = /K1\s*SE/i.test(model);
+    mEl.innerHTML = '🖨️ ' + escapeHtml(model)
+      + (tested ? ' <span class="m-badge tested">✓ testée</span>'
+                : ' <span class="m-badge">⏳ à confirmer</span>');
+  } else {
+    mEl.textContent = '🖨️ —';
+  }
   const file = (state === 'printing' || state === 'paused') && h && h.k1_file ? h.k1_file : null;
   $('live-file').textContent = file ? '📄 ' + file : '—';
 

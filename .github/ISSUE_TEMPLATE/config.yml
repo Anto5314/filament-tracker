@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Lire le README d'abord
+    url: https://github.com/Anto5314/filament-tracker/blob/main/README.md
+    about: Vérifiez la section « Compatibilité » et « Dépannage / FAQ » avant d'ouvrir une issue.
