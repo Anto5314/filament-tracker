@@ -4,6 +4,16 @@
 
 > ⚠️ **USAGE LOCAL UNIQUEMENT** — Ce projet est conçu pour tourner sur un **réseau local de confiance** (ton réseau domestique). L'API n'a **pas d'authentification** : **ne l'expose jamais sur Internet** sans ajouter une protection (reverse-proxy avec mot de passe, VPN, etc.). Connexions en clair (HTTP/WebSocket) — réservé à un usage maison.
 
+<div align="center">
+
+[![Licence](https://img.shields.io/badge/Licence-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-✓_Ready-2496ed.svg?logo=docker&logoColor=white)](docker-compose.yml)
+[![Python](https://img.shields.io/badge/Python-3.12-3776ab.svg?logo=python&logoColor=white)](collector.py)
+[![PWA](https://img.shields.io/badge/PWA-Mobile_Ready-5a0fc8.svg?logo=pwa&logoColor=white)](static/manifest.webmanifest)
+[![Compatibilité](https://img.shields.io/badge/Compatibilité-K1_•_K1C_•_K1_SE_•_K1_Max_•_K2_•_Ender--3_V3-22c55e.svg)](README.md#-compatibilité)
+
+</div>
+
 **🇬🇧 English version: [README.en.md](README.en.md)**
 
 Filament Tracker se connecte au **WebSocket propriétaire (port 9999)** de la K1SE (firmware CrealityOS), suit les impressions **en temps réel**, importe **l'historique complet** des impressions passées, **télécharge les miniatures** des modèles, et se synchronise avec **Spoolman** pour gérer le décompte du filament sur chaque bobine.
