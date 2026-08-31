@@ -178,17 +178,22 @@ K1_HOST=127.0.0.1 K1_PORT=9999 SPOOLMAN_URL=http://127.0.0.1:8000 python3 collec
 
 ## 🎯 Compatibility
 
-The CrealityOS protocol was **reverse-engineered and validated on a real K1SE** (firmware `DWIN CR4CU220812S11 1.3.5.22`). Here is what other users should know:
+The CrealityOS protocol was **reverse-engineered and validated on a real K1SE** (firmware `DWIN CR4CU220812S11 1.3.5.22`). The collector **makes no assumptions about the model** (it reads the model from the printer): any Creality device using the same CrealityOS WebSocket (port **9999**) is compatible.
 
-| Device / firmware | Compatibility |
-|---|---|
-| **K1SE** — same firmware | ✅ Works 100% (validated under real conditions) |
-| **K1SE** — newer or older firmware | 🟡 Very likely to work (Creality's WS keys are stable), but not guaranteed |
-| **K1 / K1C / K1 Max** | 🟡 Very close CrealityOS protocol, but needs testing on your machine |
+Families known to use this protocol (confirmed by the community — open-source HA integrations, etc.):
+
+| Family | Models | Reliability |
+|---|---|---|
+| **K1** | K1, K1C, K1 SE, K1 Max | ✅ Identical protocol (validated on K1SE) |
+| **K2** | K2, K2 Pro, K2 Plus | 🟢 Same CrealityOS — WS 9999 + HTTP 80 |
+| **Ender-3 V3** | Ender-3 V3, V3 SE, V3 KE, V3 Plus | 🟢 Same CrealityOS — WS 9999, optional camera |
+| **Creality Hi** | Hi | 🟢 Same CrealityOS (community) |
+| Other CrealityOS | future models | 🟡 Check that ports 9999 (WS) + 80 (thumbnails) respond |
 
 **Practical notes:**
 - The collector connects to the **WebSocket on port 9999** — make sure your printer is on the same local network and the port is not blocked by a firewall.
 - Once connected, **everything is automatic**: history imported, files + thumbnails synced, log updated live.
+- **Quick compatibility check**: if `GET http://<printer>/downloads/humbnail/test.png` responds (even a 404), the firmware server is present. The app detects the model via the WS `model` field.
 - If your firmware does not respond to the request combination, open a **GitHub issue** with your firmware version — we can adapt it.
 
 **⚠️ This project is not affiliated with Creality.** The protocol was discovered by observing network traffic; it may change at any time with a firmware update.

@@ -178,18 +178,23 @@ K1_HOST=127.0.0.1 K1_PORT=9999 SPOOLMAN_URL=http://127.0.0.1:8000 python3 collec
 
 ## 🎯 Compatibilité
 
-Le protocole CrealityOS a été **reverse-engineeré et validé sur une K1SE réelle** (firmware `DWIN CR4CU220812S11 1.3.5.22`). Voici ce qu'il faut savoir pour les autres utilisateurs :
+Le protocole CrealityOS a été **reverse-engineer et validé sur une K1SE réelle** (firmware `DWIN CR4CU220812S11 1.3.5.22`). Le collecteur **ne fait aucune supposition sur le modèle** (il lit le modèle depuis l'imprimante) : tout appareil Creality utilisant le même WebSocket CrealityOS (port **9999**) est compatible.
 
-| Appareil / firmware | Compatibilité |
-|---|---|
-| **K1SE** — même firmware | ✅ Fonctionne à 100 % (validé en conditions réelles) |
-| **K1SE** — firmware plus récent ou plus ancien | 🟡 Très probablement fonctionnel (les clés WS sont stables chez Creality), mais non garanti |
-| **K1 / K1C / K1 Max** | 🟡 Protocole CrealityOS très proche, mais à tester sur ta machine |
+Familles connues pour utiliser ce protocole (confirmé par la communauté — intégrations HA open source, etc.) :
+
+| Famille | Modèles | Fiabilité |
+|---|---|---|
+| **K1** | K1, K1C, K1 SE, K1 Max | ✅ Protocole identique (validé sur K1SE) |
+| **K2** | K2, K2 Pro, K2 Plus | 🟢 Même CrealityOS — WS 9999 + HTTP 80 |
+| **Ender-3 V3** | Ender-3 V3, V3 SE, V3 KE, V3 Plus | 🟢 Même CrealityOS — WS 9999, caméra optionnelle |
+| **Creality Hi** | Hi | 🟢 Même CrealityOS (communauté) |
+| Autres CrealityOS | futurs modèles | 🟡 Vérifier que les ports 9999 (WS) + 80 (miniatures) répondent |
 
 **Points pratiques :**
-- Le collecteur se connecte au **WebSocket port 9999** — vérifie que ton imprimante est sur le même réseau local et que le port n'est pas bloqué par le pare-feu.
+- Le collecteur se connecte au **WebSocket port 9999** — vérifiez que votre imprimante est sur le même réseau local et que le port n'est pas bloqué par le pare-feu.
 - Une fois connecté, **tout est automatique** : historique importé, fichiers + miniatures synchronisés, journal mis à jour en direct.
-- Si ton firmware ne répond pas à la combinaison de requêtes, ouvre une **issue GitHub** avec ta version de firmware — le projet pourra l'adapter.
+- **Check rapide de compatibilité** : si `GET http://<imprimante>/downloads/humbnail/test.png` répond (même une 404), le firmware serveur est là. L'appli détecte le modèle via le champ `model` du WS.
+- Si votre firmware ne répond pas à la combinaison de requêtes, ouvrez une **issue GitHub** avec votre version de firmware — nous pourrons l'adapter.
 
 **⚠️ Ce projet n'a aucun lien avec Creality.** Le protocole a été découvert par observation du trafic réseau ; il peut changer à tout moment avec une mise à jour du firmware.
 
