@@ -292,12 +292,12 @@ class K1Client:
                 # réponse à reqGcodeList → la liste des fichiers de l'imprimante
                 flist = payload.get("retGcodeFileInfo2") or payload.get("retGcodeFileInfo")
                 if flist is not None and isinstance(flist, list):
-                    asyncio.get_event_loop().create_task(
+                    asyncio.create_task(
                         _sync_k1_thumbnails(flist))
                 # réponse à reqHistory → l'historique des impressions (rétroactif)
                 hlist = payload.get("historyList")
                 if hlist is not None and isinstance(hlist, list):
-                    asyncio.get_event_loop().create_task(
+                    asyncio.create_task(
                         _import_k1_history(hlist))
                 await self.on_state(payload)
         finally:
@@ -433,33 +433,45 @@ async def api_sessions_attach(request):
 
     # Conversion automatique material_mm → grammes via densité du filament
     if grams is None and sess.get("material_mm") and spool_id:
-        async with aiohttp.ClientSession() as client:
-            res, status = await spoolman_get(client, f"/spool/{spool_id}")
-            density = None
-            if status == 200 and isinstance(res, dict):
-                fil = res.get("filament") or {}
-                density = fil.get("density")
-            if density:
-                from gcode_parser import mm_to_grams
-                grams = mm_to_grams(float(sess["material_mm"]), density=density or 1.24)
-                log.info("Conversion auto: %s mm × densité %s = %s g", sess["material_mm"], density, grams)
+        try:
+            async with aiohttp.ClientSession() as client:
+                res, status = await spoolman_get(client, f"/spool/{spool_id}")
+                density = None
+                if status == 200 and isinstance(res, dict):
+                    fil = res.get("filament") or {}
+                    density = fil.get("density")
+                if density:
+                    from gcode_parser import mm_to_grams
+                    grams = mm_to_grams(float(sess["material_mm"]), density=density or 1.24)
+                    log.info("Conversion auto: %s mm × densité %s = %s g", sess["material_mm"], density, grams)
+        except Exception as exc:
+            # Spoolman down : on associe quand même la bobine, sans conversion
+            log.warning("Spoolman injoignable (conversion densité): %s", exc)
 
     update_session(sid, spool_id=spool_id, filament_grams=grams)
     # décompte Spoolman (désactivé via debit=false)
     if spool_id and grams and debit:
-        async with aiohttp.ClientSession() as client:
-            res, status = await spoolman_get(client, f"/spool/{spool_id}")
-            if status == 200 and isinstance(res, dict):
-                cur = res.get("remaining_weight") or 0
-                new_rem = max(0, round(cur - grams, 2))
-                await spoolman_patch(client, f"/spool/{spool_id}", {"remaining_weight": new_rem})
+        try:
+            async with aiohttp.ClientSession() as client:
+                res, status = await spoolman_get(client, f"/spool/{spool_id}")
+                if status == 200 and isinstance(res, dict):
+                    cur = res.get("remaining_weight") or 0
+                    new_rem = max(0, round(cur - grams, 2))
+                    await spoolman_patch(client, f"/spool/{spool_id}", {"remaining_weight": new_rem})
+        except Exception as exc:
+            # Ne pas faire échouer l'association si Spoolman est momentanément down
+            log.warning("Spoolman injoignable (décompte): %s", exc)
     return aiohttp.web.json_response(get_session(sid))
 
 
 async def api_spools(request):
     """Proxy Spoolman : liste des spools (filament + poids)."""
-    async with aiohttp.ClientSession() as client:
-        res, status = await spoolman_get(client, "/spool")
+    try:
+        async with aiohttp.ClientSession() as client:
+            res, status = await spoolman_get(client, "/spool")
+    except Exception as exc:
+        log.warning("Spoolman injoignable: %s", exc)
+        return aiohttp.web.json_response({"error": "spoolman injoignable"}, status=502)
     if status != 200:
         return aiohttp.web.json_response({"error": "spoolman injoignable"}, status=502)
     return aiohttp.web.json_response(res)

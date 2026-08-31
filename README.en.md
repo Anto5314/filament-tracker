@@ -14,8 +14,9 @@ Your K1SE runs **CrealityOS** (Klipper **without Moonraker**): there is no simpl
 
 - **You print → the log fills itself automatically** (file name, status, actual filament consumed)
 - **All your past prints are imported** from the printer's history (completed **and** stopped)
-- **You see your models with their thumbnails** in a "Printer" tab
+- **You see your models with their thumbnails** in the "Filaments" tab
 - **You link a print to a spool** → the remaining weight is automatically deducted in Spoolman
+- **A real-time dashboard** shows the printer status (nozzle/bed temperatures, current file, global statistics)
 
 ---
 
@@ -25,12 +26,13 @@ Your K1SE runs **CrealityOS** (Klipper **without Moonraker**): there is no simpl
 |---|---|---|
 | 📋 | **Automatic print log** | Each print starts a session: file, time, status (completed / stopped / failed), duration, measured filament (`usedMaterialLength`) |
 | 📜 | **Retroactive import** | The printer's full history (`historyList`) is imported automatically — every past print shows up in the log |
-| 🖼️ | **Model thumbnails** | Downloaded from the printer (`/downloads/humbnail/*.png` — yes, with the firmware's typo!) and shown in the "Printer" tab |
-| ⚖️ | **Quantity per model** | The slicer's `filamentWeight` field is read for every file: material + estimated grams + print duration |
-| 🧵 | **Spool → print linking** | From the log or the Printer tab, pick the spool used → automatic deduction in Spoolman |
-| 🪙 | **"Link without deducting"** | For **hand-weighed** spools: past prints must not deduct their filament again (prevents double counting). Checkbox, unchecked by default for historical sessions |
+| 📊 | **Printer dashboard** | Real-time status: WS connection, nozzle/bed temperatures, current file, global statistics — refreshed every 6 s |
+| 🖼️ | **Model thumbnails** | Downloaded from the printer (`/downloads/humbnail/*.png` — yes, with the firmware's typo!) and shown in the "Filaments" tab |
+| ⚖️ | **Quantity per model** | The slicer's `filamentWeight` field is read for each file: material + estimated grams + print duration |
+| 🧵 | **Spool → print linking** | From the log or the Filaments tab, pick the spool used → automatic deduction in Spoolman |
+| 🪙 | **"Link without deducting"** | For hand-weighed spools: old prints must not deduct their filament again (avoids double counting). Checkbox, unchecked by default for historical sessions |
 | 📱 | **Mobile PWA** | Installable on your phone (home screen), mobile-optimized interface |
-| 🖥️ | **K1 mock included** | A printer simulator (`mock_k1.py`) lets you test the whole app without touching your machine |
+| 🖥️ | **Mock K1 included** | A printer simulator (`mock_k1.py`) lets you test the whole app without risking your machine |
 | 🔄 | **Auto-reconnect** | Silence watchdog: if the printer is off or asleep, the collector reconnects every 10 s |
 | 🔒 | **No duplicates** | History import is idempotent and merges with live-created sessions |
 
@@ -75,9 +77,8 @@ Your K1SE runs **CrealityOS** (Klipper **without Moonraker**): there is no simpl
 git clone <your-repo-url>
 cd filament-tracker
 
-# 2. Configure the printer address
-echo "K1_HOST=192.168.1.100" > .env
-echo "K1_PORT=9999" >> .env
+# 2. Configure the printer address (optional: 192.168.1.41 by default)
+echo -e "K1_HOST=192.168.1.100\nK1_PORT=9999" > .env
 
 # 3. Launch
 docker compose up -d --build
@@ -99,6 +100,7 @@ Environment variables (`docker-compose.yml` or `.env`):
 | `K1_PORT` | `9999` | CrealityOS WebSocket port |
 | `K1_SUBPROTOCOL` | *(empty)* | WS subprotocol (unused on K1SE, kept for compatibility) |
 | `DB_PATH` | `/data/k1_sessions.db` | Local SQLite database |
+| `THUMB_DIR` | `/data/thumbs` | Folder for downloaded thumbnails |
 | `SPOOLMAN_URL` | `http://spoolman:8000` | Spoolman API URL |
 | `WEB_PORT` | `8123` | Web interface port |
 | `POLL_INTERVAL` | `5` | WS request interval (seconds) |
@@ -111,9 +113,10 @@ Environment variables (`docker-compose.yml` or `.env`):
 
 1. **Add your spools in Spoolman** (http://<server>:7912) with their measured weight
 2. **Open the interface** (http://<server>:8123)
-3. **📋 Log tab**: all prints (past + future) with status and filament
-4. **📁 Printer tab**: models on the printer with thumbnail + quantity + duration
-5. **Click a session or a model** → pick the spool → the weight is deducted
+3. **📊 Dashboard tab**: live printer status (connection, nozzle/bed temperatures, statistics)
+4. **📋 Log tab**: all prints (past + future) with status and filament
+5. **🧵 Filaments tab**: Spoolman spools (remaining weight, level) + the printer's models with thumbnail + quantity + duration
+6. **Click a session or a model** → pick the spool → the weight is deducted
 
 > 💡 **Mobile tip**: on Android/iOS, "Add to home screen" installs Filament Tracker as an app.
 
@@ -217,6 +220,19 @@ The CrealityOS protocol was **reverse-engineered and validated on a real K1SE** 
 ![Mobile view](screenshots/mobile.png)
 
 *Screenshots show the real interface (demo IP address blurred).*
+
+---
+
+## 🆘 Troubleshooting / FAQ
+
+| Problem | Solution |
+|---|---|
+| The interface shows "📡 Offline" | Check `K1_HOST` in `.env`, make sure the printer is on the same local network, and that port 9999 isn't blocked by a firewall. |
+| "Spoolman unreachable" | Wait a few seconds after startup (spoolman starts in parallel with the collector), then check http://<server>:7912. |
+| The log is empty while I'm printing | A running print appears immediately in the Log tab; the full history is imported ~1 min after connection. |
+| Thumbnails don't show up | The file list refreshes automatically (~1 min); you can also click "🔄 Refresh" in the Filaments tab. |
+| Consumption looks wrong | Check the filament density in Spoolman (e.g. PLA = 1.24 g/cm³) and the "🪙 Deduct" checkbox for hand-weighed spools. |
+| Update | `git pull` then `docker compose up -d --build` |
 
 ---
 

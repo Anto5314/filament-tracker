@@ -14,8 +14,9 @@ Ta K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe au
 
 - **Tu imprimes → le journal se remplit automatiquement** (nom du fichier, statut, filament réellement consommé)
 - **Toutes tes impressions passées sont importées** depuis l'historique de l'imprimante (terminées **et** arrêtées)
-- **Tu vois tes modèles avec leur miniature** dans un onglet « Imprimante »
+- **Tu vois tes modèles avec leur miniature** dans l'onglet « Filaments »
 - **Tu associes une impression à une bobine** → le poids restant se décompte automatiquement dans Spoolman
+- **Un dashboard temps réel** montre l'état de l'imprimante (températures buse/plateau, fichier en cours, statistiques)
 
 ---
 
@@ -25,12 +26,13 @@ Ta K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe au
 |---|---|---|
 | 📋 | **Journal automatique** | Chaque impression démarre une session : fichier, heure, statut (terminée / arrêtée / erreur), durée, filament mesuré (`usedMaterialLength`) |
 | 📜 | **Import rétroactif** | L'historique complet de l'imprimante (`historyList`) est importé automatiquement — toutes les impressions passées apparaissent dans le journal |
-| 🖼️ | **Miniatures des modèles** | Téléchargées depuis l'imprimante (`/downloads/humbnail/*.png` — oui, avec la faute de frappe du firmware !) et affichées dans l'onglet « Imprimante » |
+| 📊 | **Dashboard imprimante** | État temps réel : connexion WS, températures buse/plateau, fichier en cours, statistiques globales — rafraîchi toutes les 6 s |
+| 🖼️ | **Miniatures des modèles** | Téléchargées depuis l'imprimante (`/downloads/humbnail/*.png` — oui, avec la faute de frappe du firmware !) et affichées dans l'onglet « Filaments » |
 | ⚖️ | **Quantité par modèle** | Le champ `filamentWeight` du slicer est lu pour chaque fichier : matière + grammes estimés + durée d'impression |
-| 🧵 | **Association bobine → impression** | Depuis le journal ou l'onglet Imprimante, choisis la bobine utilisée → décompte automatique dans Spoolman |
+| 🧵 | **Association bobine → impression** | Depuis le journal ou l'onglet Filaments, choisis la bobine utilisée → décompte automatique dans Spoolman |
 | 🪙 | **« Associer sans décompter »** | Pour les bobines **pesées à la main** : les anciennes impressions ne doivent pas re-décompter leur filament (évite le double comptage). Case à cocher, décochée par défaut pour les sessions historiques |
 | 📱 | **PWA mobile** | Installable sur le téléphone (écran d'accueil), interface optimisée mobile |
-| 🖥️ | **Mock K1 inclus** | Un simulateur d'imprimante (`mock_k1.py`) permet de tester toute l'appli sans toner abîmer ta machine |
+| 🖥️ | **Mock K1 inclus** | Un simulateur d'imprimante (`mock_k1.py`) permet de tester toute l'appli sans toucher à ta machine |
 | 🔄 | **Reconnexion automatique** | Watchdog de silence : si l'imprimante est éteinte ou en veille, le collecteur se reconnecte toutes les 10 s |
 | 🔒 | **Aucun doublon** | L'import d'historique est idempotent et fusionne avec les sessions créées en direct |
 
@@ -75,9 +77,8 @@ Ta K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe au
 git clone <votre-url-repo>
 cd filament-tracker
 
-# 2. Configurer l'adresse de l'imprimante
-echo "K1_HOST=192.168.1.100" > .env
-echo "K1_PORT=9999" >> .env
+# 2. Configurer l'adresse de l'imprimante (optionnel : l'IP par défaut est 192.168.1.41)
+echo -e "K1_HOST=192.168.1.100\nK1_PORT=9999" > .env
 
 # 3. Lancer
 docker compose up -d --build
@@ -99,6 +100,7 @@ Variables d'environnement (fichier `.env` ou `docker-compose.yml`) :
 | `K1_PORT` | `9999` | Port WebSocket CrealityOS |
 | `K1_SUBPROTOCOL` | *(vide)* | Sous-protocole WS (inutilisé sur K1SE, laissé pour compatibilité) |
 | `DB_PATH` | `/data/k1_sessions.db` | Base SQLite locale |
+| `THUMB_DIR` | `/data/thumbs` | Dossier des miniatures téléchargées |
 | `SPOOLMAN_URL` | `http://spoolman:8000` | URL API Spoolman |
 | `WEB_PORT` | `8123` | Port de l'interface web |
 | `POLL_INTERVAL` | `5` | Intervalle des requêtes WS (secondes) |
@@ -111,9 +113,10 @@ Variables d'environnement (fichier `.env` ou `docker-compose.yml`) :
 
 1. **Ajoute tes bobines dans Spoolman** (http://<serveur>:7912) avec leur poids mesuré
 2. **Ouvre l'interface** (http://<serveur>:8123)
-3. **Tablature 📋 Journal** : toutes les impressions (passées + futures) avec statut et filament
-4. **Tablature 📁 Imprimante** : les modèles présents sur l'imprimante avec miniature + quantité + durée
-5. **Clique sur une session ou un modèle** → choisis la bobine → le poids se décompte
+3. **Onglet 📊 Dashboard** : état de l'imprimante en direct (connexion, températures buse/plateau, statistiques)
+4. **Onglet 📋 Journal** : toutes les impressions (passées + futures) avec statut et filament
+5. **Onglet 🧵 Filaments** : les bobines Spoolman (poids restant, niveau) + les modèles de l'imprimante avec miniature + quantité + durée
+6. **Clique sur une session ou un modèle** → choisis la bobine → le poids se décompte
 
 > 💡 **Astuce mobile** : sur Android/iOS, « Ajouter à l'écran d'accueil » installe Filament Tracker comme une appli.
 
@@ -173,18 +176,18 @@ K1_HOST=127.0.0.1 K1_PORT=9999 SPOOLMAN_URL=http://127.0.0.1:8000 python3 collec
 
 ## 🎯 Compatibilité
 
-Le protocole CrealityOS a été **reverse-engineer et validé sur une K1SE réelle** (firmware `DWIN CR4CU220812S11 1.3.5.22`). Voici ce qu'il faut savoir pour les autres utilisateurs :
+Le protocole CrealityOS a été **reverse-engineeré et validé sur une K1SE réelle** (firmware `DWIN CR4CU220812S11 1.3.5.22`). Voici ce qu'il faut savoir pour les autres utilisateurs :
 
 | Appareil / firmware | Compatibilité |
 |---|---|
 | **K1SE** — même firmware | ✅ Fonctionne à 100 % (validé en conditions réelles) |
 | **K1SE** — firmware plus récent ou plus ancien | 🟡 Très probablement fonctionnel (les clés WS sont stables chez Creality), mais non garanti |
-| **K1 / K1C / K1 Max** | 🟡 Protocole CrealityOS très proche, mais à tester sur votre machine |
+| **K1 / K1C / K1 Max** | 🟡 Protocole CrealityOS très proche, mais à tester sur ta machine |
 
 **Points pratiques :**
-- Le collecteur se connecte au **WebSocket port 9999** — vérifiez que votre imprimante est sur le même réseau local et que le port n'est pas bloqué par le pare-feu.
+- Le collecteur se connecte au **WebSocket port 9999** — vérifie que ton imprimante est sur le même réseau local et que le port n'est pas bloqué par le pare-feu.
 - Une fois connecté, **tout est automatique** : historique importé, fichiers + miniatures synchronisés, journal mis à jour en direct.
-- Si votre firmware ne répond pas à la combinaison de requêtes, ouvrez une **issue GitHub** avec votre version de firmware — nous pourrons l'adapter.
+- Si ton firmware ne répond pas à la combinaison de requêtes, ouvre une **issue GitHub** avec ta version de firmware — le projet pourra l'adapter.
 
 **⚠️ Ce projet n'a aucun lien avec Creality.** Le protocole a été découvert par observation du trafic réseau ; il peut changer à tout moment avec une mise à jour du firmware.
 
@@ -217,6 +220,19 @@ Le protocole CrealityOS a été **reverse-engineer et validé sur une K1SE réel
 ![Vue mobile](screenshots/mobile.png)
 
 *Les captures montrent l'interface réelle (adresse IP de démonstration floutée).*
+
+---
+
+## 🆘 Dépannage / FAQ
+
+| Problème | Solution |
+|---|---|
+| L'interface indique « 📡 Hors ligne » | Vérifie `K1_HOST` dans `.env`, que l'imprimante est sur le même réseau local, et que le port 9999 n'est pas bloqué par un pare-feu. |
+| « Spoolman injoignable » | Attends quelques secondes après le démarrage (spoolman démarre en parallèle du collecteur), puis vérifie http://<serveur>:7912. |
+| Le journal est vide alors que j'imprime | Une impression en cours apparaît immédiatement dans l'onglet Journal ; l'historique complet s'importe ~1 min après la connexion. |
+| Les miniatures ne s'affichent pas | La liste des fichiers se rafraîchit automatiquement (~1 min) ; tu peux aussi cliquer « 🔄 Rafraîchir » dans l'onglet Filaments. |
+| La consommation semble fausse | Vérifie la densité du filament dans Spoolman (ex. PLA = 1,24 g/cm³) et la case « 🪙 Décompter » pour les bobines pesées à la balance. |
+| Mettre à jour | `git pull` puis `docker compose up -d --build` |
 
 ---
 
