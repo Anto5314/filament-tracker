@@ -3,127 +3,262 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#0B0F14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>🧵 Filament Tracker</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖨️</text></svg>">
 <style>
   :root {
-    --bg: #0f172a; --card: #1e293b; --border: #334155;
-    --text: #e2e8f0; --muted: #94a3b8;
-    --green: #22c55e; --red: #ef4444; --blue: #3b82f6; --yellow: #f59e0b;
+    --bg: #0B0F14; --card: #111922; --card2: #151f2b;
+    --border: #1e2a3a; --border-strong: #2a3c52;
+    --text: #e6edf3; --muted: #8b98a9;
+    --cyan: #22d3ee; --amber: #f59e0b; --blue: #3b82f6;
+    --green: #22c55e; --red: #ef4444;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg); color: var(--text); padding: 12px 12px 90px;
-    max-width: 640px; margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+    background: radial-gradient(1100px 520px at 50% -12%, #111c2b 0%, var(--bg) 55%);
+    background-attachment: fixed;
+    color: var(--text); padding: 14px 14px 100px;
+    max-width: 700px; margin: 0 auto;
+    font-variant-numeric: tabular-nums;
   }
-  h1 { font-size: 20px; margin: 4px 0 2px; display: flex; align-items: center; gap: 8px; }
-  .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  h1 { font-size: 21px; margin: 4px 0 2px; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 4px; }
   .card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
     padding: 14px; margin-bottom: 12px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.02), 0 6px 24px -14px rgba(0,0,0,.6);
   }
-  .stat-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .sec-title {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .9px;
+    color: var(--muted); display: flex; align-items: center; gap: 7px;
+    margin: 14px 0 10px; font-weight: 700;
+  }
+  .sec-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+  /* ---------- Onglets ---------- */
+  .tabs { display: flex; gap: 8px; margin: 14px 0; }
+  .tab {
+    flex: 1; padding: 10px 4px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--card); color: var(--muted); font-weight: 700; font-size: 13px;
+    cursor: pointer; transition: all .2s; font-family: inherit;
+  }
+  .tab.active {
+    background: linear-gradient(180deg, #14283a, #0f1c2b);
+    color: var(--cyan); border-color: rgba(34,211,238,.42);
+    box-shadow: 0 0 20px -6px rgba(34,211,238,.4);
+  }
+
+  /* ---------- Dashboard ---------- */
+  .live-card {
+    background: linear-gradient(180deg, #131d2b, #10171f);
+    border-color: #233149;
+    box-shadow: 0 0 0 1px rgba(34,211,238,.05), 0 10px 34px -14px rgba(0,0,0,.65);
+  }
+  .live-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .state-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;
+    border: 1px solid var(--border); transition: all .3s;
+  }
+  .state-pill .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; animation: pulse 1.8s infinite; flex-shrink: 0; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,255,255,.28); }
+    70% { box-shadow: 0 0 0 7px rgba(255,255,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+  .pill-idle { background: #16202c; color: var(--muted); }
+  .pill-printing { background: rgba(34,211,238,.12); color: var(--cyan); border-color: rgba(34,211,238,.4); box-shadow: 0 0 16px -6px rgba(34,211,238,.5); }
+  .pill-completed { background: rgba(34,197,94,.12); color: #4ade80; border-color: rgba(34,197,94,.4); }
+  .pill-error { background: rgba(239,68,68,.12); color: #f87171; border-color: rgba(239,68,68,.4); }
+  .pill-stopped { background: rgba(245,158,11,.12); color: #fbbf24; border-color: rgba(245,158,11,.4); }
+  .pill-paused { background: rgba(148,163,184,.14); color: #cbd5e1; }
+  .pill-offline { background: rgba(239,68,68,.1); color: #f87171; border-color: rgba(239,68,68,.32); }
+  .live-conn { color: var(--muted); font-size: 12px; text-align: right; }
+  .live-file {
+    margin-top: 12px; font-size: 15px; font-weight: 600; word-break: break-word;
+    display: flex; align-items: center; gap: 8px; min-height: 22px;
+  }
+  .prog-row { margin-top: 12px; }
+  .prog-top { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .progress-wrap { height: 7px; background: #182534; border-radius: 4px; overflow: hidden; }
+  .progress-bar {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--cyan), var(--amber));
+    box-shadow: 0 0 12px rgba(34,211,238,.45);
+    transition: width .6s ease;
+  }
+  .gauges { display: flex; gap: 12px; margin-top: 14px; }
+  .gauge-box {
+    flex: 1; border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 8px 10px; text-align: center;
+    background: rgba(10,15,21,.5);
+    box-shadow: inset 0 0 20px rgba(34,211,238,.03);
+  }
+  .gauge-wrap { position: relative; width: 108px; height: 108px; margin: 0 auto; }
+  .gauge { width: 108px; height: 108px; }
+  .g-track { fill: none; stroke: #1b2939; stroke-width: 9; }
+  .g-val {
+    fill: none; stroke-width: 9; stroke-linecap: round;
+    transition: stroke-dashoffset .7s ease;
+    filter: drop-shadow(0 0 5px rgba(34,211,238,.4));
+  }
+  .g-num {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; line-height: 1.05;
+    font-size: 25px; font-weight: 800;
+  }
+  .g-num small { font-size: 10.5px; font-weight: 700; color: var(--muted); margin-top: 3px; letter-spacing: .5px; }
+  .g-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; margin-top: 8px; font-weight: 700; }
+  .stat-row { display: flex; gap: 10px; }
   .stat {
     flex: 1; background: var(--card); border: 1px solid var(--border);
-    border-radius: 14px; padding: 10px; text-align: center;
+    border-radius: 14px; padding: 11px 6px; text-align: center;
   }
-  .stat .num { font-size: 22px; font-weight: 700; }
-  .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-  .session {
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-    padding: 12px; margin-bottom: 10px;
-  }
-  .sess-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .sess-file { font-weight: 600; font-size: 14px; word-break: break-word; }
-  .badge { padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-  .b-printing { background: #1e3a5f; color: #60a5fa; }
-  .b-completed { background: #14351f; color: var(--green); }
-  .b-error { background: #3b1416; color: var(--red); }
-  .b-stopped { background: #33260f; color: var(--yellow); }
-  .b-paused { background: #222; color: var(--muted); }
-  .sess-meta { color: var(--muted); font-size: 12px; margin-top: 5px; }
-  .sess-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  button {
-    background: var(--blue); color: #fff; border: none; border-radius: 10px;
-    padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
-  }
-  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
-  button.red { background: var(--red); }
-  button.green { background: var(--green); color: #052e16; }
-  .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
-  select, input[type=number] {
-    background: var(--bg); color: var(--text); border: 1px solid var(--border);
-    border-radius: 10px; padding: 8px 10px; font-size: 14px; width: 100%;
-    font-family: inherit;
-  }
-  .form-row { margin-bottom: 8px; }
-  .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .fab {
-    position: fixed; bottom: 18px; right: 18px; width: 54px; height: 54px;
-    border-radius: 50%; background: var(--green); color: #052e16; border: none;
-    font-size: 26px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
-  }
-  .toast {
-    position: fixed; left: 50%; transform: translateX(-50%); bottom: 84px;
-    background: #052e16; color: var(--green); padding: 10px 16px; border-radius: 20px;
-    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none;
-  }
-  .toast.show { opacity: 1; }
-  #modal {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
-    align-items: center; justify-content: center; padding: 20px; z-index: 10;
-  }
-  #modal.open { display: flex; }
-  .modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; width: 100%; max-width: 360px; }
-  .modal-card h3 { margin-bottom: 12px; font-size: 16px; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
-  .progress-wrap { height: 6px; background: var(--border); border-radius: 3px; margin-top: 8px; overflow: hidden; }
-  .progress-bar { height: 100%; background: var(--blue); border-radius: 3px; }
+  .stat .num { font-size: 22px; font-weight: 800; }
+  .stat .lbl { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-top: 3px; font-weight: 700; }
 
-  /* Miniatures des modèles */
+  /* ---------- Journal ---------- */
+  .session {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 12px; margin-bottom: 10px; transition: border-color .2s, transform .15s;
+  }
+  .session:hover { border-color: var(--border-strong); }
+  .sess-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .sess-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .sess-thumb {
     width: 56px; height: 56px; object-fit: contain;
     border-radius: 10px; border: 1px solid var(--border);
-    background: #0b1526; flex-shrink: 0;
+    background: #0b1320; flex-shrink: 0;
   }
-  .sess-thumb-none {
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-  }
-  #m-thumb-preview {
-    max-width: 160px; max-height: 160px; border-radius: 12px;
-    border: 1px solid var(--border); background: #0b1526;
-    display: none; margin: 0 auto 8px; object-fit: contain;
-  }
-  #m-thumb-preview.show { display: block; }
+  .sess-thumb-none { display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .sess-file { font-weight: 600; font-size: 14px; word-break: break-word; }
+  .sess-meta { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.5; }
+  .sess-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .sess-progress { margin-top: 10px; }
 
-  /* Onglets + bibliothèque imprimante */
-  .tabs { display: flex; gap: 8px; margin: 12px 0; }
-  .tab {
-    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--card); color: var(--text); font-weight: 600; cursor: pointer;
-    transition: all .15s;
+  /* ---------- Boutons / formulaires ---------- */
+  button {
+    background: var(--blue); color: #fff; border: none; border-radius: 10px;
+    padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: filter .15s, transform .1s;
   }
-  .tab.active { background: var(--blue); color: #0a1420; border-color: transparent; }
-  .k1-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  button:active { transform: scale(.97); }
+  button.ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--text); }
+  button.ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+  button.red { background: var(--red); }
+  button.green {
+    background: linear-gradient(135deg, #0e7490, #3b82f6);
+    color: #eef7ff; box-shadow: 0 0 14px -4px rgba(34,211,238,.5);
+  }
+  button.k1-refresh { width: 100%; margin-top: 10px; padding: 9px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
+  select, input[type=number], input[type=text] {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 10px; font-size: 14px; width: 100%;
+    font-family: inherit;
+  }
+  select:focus, input:focus { outline: none; border-color: rgba(34,211,238,.5); }
+  .form-row { margin-bottom: 10px; }
+  .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+  .fab {
+    position: fixed; bottom: 18px; right: 18px; width: 56px; height: 56px;
+    border-radius: 50%; border: none; font-size: 27px; font-weight: 700;
+    background: linear-gradient(135deg, var(--cyan), var(--amber));
+    color: #081018; cursor: pointer;
+    box-shadow: 0 6px 22px rgba(34,211,238,.35);
+    transition: transform .15s;
+  }
+  .fab:active { transform: scale(.92); }
+
+  /* ---------- Badges ---------- */
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: .3px; white-space: nowrap; text-transform: capitalize; border: 1px solid transparent; }
+  .b-printing { background: rgba(34,211,238,.14); color: #67e8f9; border-color: rgba(34,211,238,.32); }
+  .b-completed { background: rgba(34,197,94,.14); color: #4ade80; border-color: rgba(34,197,94,.32); }
+  .b-error { background: rgba(239,68,68,.14); color: #f87171; border-color: rgba(239,68,68,.32); }
+  .b-stopped { background: rgba(245,158,11,.14); color: #fbbf24; border-color: rgba(245,158,11,.32); }
+  .b-paused { background: rgba(148,163,184,.14); color: #cbd5e1; border-color: rgba(148,163,184,.25); }
+  .b-active { background: rgba(34,197,94,.14); color: #4ade80; border-color: rgba(34,197,94,.32); }
+  .b-inactive { background: rgba(148,163,184,.14); color: #cbd5e1; border-color: rgba(148,163,184,.25); }
+  .b-archived { background: rgba(239,68,68,.12); color: #f87171; border-color: rgba(239,68,68,.28); }
+  .b-unused { background: rgba(245,158,11,.14); color: #fbbf24; border-color: rgba(245,158,11,.32); }
+  .b-in_use { background: rgba(34,211,238,.14); color: #67e8f9; border-color: rgba(34,211,238,.32); }
+  .b-green { background: rgba(34,197,94,.14); color: #4ade80; border-color: rgba(34,197,94,.32); }
+
+  /* ---------- Filaments ---------- */
+  .spool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .spool-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 10px; transition: transform .15s, border-color .15s;
+    box-shadow: 0 4px 16px -10px rgba(0,0,0,.5);
+  }
+  .spool-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+  .spool-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 9px; }
+  .spool-color {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,.13);
+    box-shadow: 0 0 12px rgba(0,0,0,.45), inset 0 0 6px rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .spool-name { font-weight: 700; font-size: 14px; word-break: break-word; }
+  .spool-mat { font-size: 11px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .4px; }
+  .spool-rest { font-size: 12.5px; font-weight: 700; margin-top: 9px; }
+  .spool-rest .unit { font-weight: 600; color: var(--muted); font-size: 10.5px; }
+  .spool-bar { height: 5px; background: #182534; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .spool-bar i { display: block; height: 100%; border-radius: 3px; transition: width .5s ease; }
+  .bar-high { background: linear-gradient(90deg, #059669, var(--green)); }
+  .bar-med { background: linear-gradient(90deg, #d97706, var(--amber)); }
+  .bar-low { background: linear-gradient(90deg, #dc2626, var(--red)); }
+
+  /* ---------- Bibliothèque K1 ---------- */
+  .k1-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
   .k1-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 12px;
     padding: 8px; overflow: hidden; cursor: pointer; transition: all .15s;
   }
-  .k1-card:hover { border-color: var(--blue); transform: translateY(-2px); }
-  .k1-card img { width: 100%; height: 90px; object-fit: contain; border-radius: 8px; background: #0b1526; }
-  .k1-card .k1-name {
-    font-size: 10px; margin-top: 6px; line-height: 1.3; color: var(--muted);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .k1-card .k1-mat { font-size: 10px; font-weight: 600; color: var(--blue); margin-top: 2px; }
+  .k1-card:hover { border-color: rgba(34,211,238,.5); transform: translateY(-2px); box-shadow: 0 0 16px -6px rgba(34,211,238,.35); }
+  .k1-card img { width: 100%; height: 90px; object-fit: contain; border-radius: 8px; background: #0b1320; }
+  .k1-thumb-none { width: 100%; height: 90px; display: flex; align-items: center; justify-content: center; background: #0b1320; border-radius: 8px; color: var(--muted); font-size: 22px; }
+  .k1-name { font-size: 10.5px; margin-top: 7px; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .k1-mat { font-size: 10px; font-weight: 700; color: var(--cyan); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .k1-empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 13px; }
-  .k1-refresh { width: 100%; margin-top: 10px; padding: 9px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+
+  /* ---------- Modal / toast ---------- */
+  #modal {
+    display: none; position: fixed; inset: 0; background: rgba(4,8,12,.72);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    align-items: center; justify-content: center; padding: 20px; z-index: 10;
+  }
+  #modal.open { display: flex; }
+  .modal-card {
+    background: var(--card2); border: 1px solid var(--border-strong); border-radius: 18px;
+    padding: 18px; width: 100%; max-width: 370px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.6), 0 0 0 1px rgba(34,211,238,.06);
+  }
+  .modal-card h3 { margin-bottom: 12px; font-size: 15px; word-break: break-word; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .modal-actions button { flex: 1; }
+  #m-thumb-preview {
+    max-width: 170px; max-height: 170px; border-radius: 12px;
+    border: 1px solid var(--border); background: #0b1320;
+    display: none; margin: 0 auto 10px; object-fit: contain;
+  }
+  #m-thumb-preview.show { display: block; }
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 88px;
+    background: #0f1a24; color: #7dd3fc; padding: 10px 18px; border-radius: 22px;
+    font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; z-index: 30;
+    border: 1px solid rgba(34,211,238,.35);
+    box-shadow: 0 8px 26px rgba(0,0,0,.55);
+    transition: opacity .25s, transform .25s;
+    max-width: 92vw;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 </style>
 </head>
 <body>
@@ -131,20 +266,45 @@
 <h1>🧵 Filament Tracker</h1>
 <div class="sub" id="conn">Connexion…</div>
 
-<div class="stat-row">
-  <div class="stat"><div class="num" id="s-total">–</div><div class="lbl">Impressions</div></div>
-  <div class="stat"><div class="num" id="s-err">–</div><div class="lbl">Erreurs</div></div>
-  <div class="stat"><div class="num" id="s-conso">–</div><div class="lbl">Filament (g)</div></div>
-</div>
-
 <div class="tabs">
-  <button class="tab active" id="tab-journal" onclick="showTab('journal')">📋 Journal</button>
-  <button class="tab" id="tab-imprimante" onclick="showTab('imprimante')">📁 Imprimante</button>
+  <button class="tab active" id="tab-dashboard" onclick="showTab('dashboard')">📊 Dashboard</button>
+  <button class="tab" id="tab-journal" onclick="showTab('journal')">📋 Journal</button>
+  <button class="tab" id="tab-filaments" onclick="showTab('filaments')">🧵 Filaments</button>
 </div>
 
-<div id="sessions"></div>
+<div id="dash">
+  <div class="card live-card">
+    <div class="live-head">
+      <div class="state-pill pill-idle" id="state-pill"><span class="dot"></span>…</div>
+      <div class="live-conn" id="live-conn">—</div>
+    </div>
+    <div class="live-file" id="live-file">—</div>
+    <div class="prog-row" id="prog-row" style="display:none">
+      <div class="prog-top"><span id="prog-lbl">0 %</span><span id="d-fil">🧵 —</span></div>
+      <div class="progress-wrap"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+    </div>
+    <div class="gauges">
+      <div class="gauge-box" id="g-nozzle"></div>
+      <div class="gauge-box" id="g-bed"></div>
+    </div>
+  </div>
+  <div class="sec-title">📈 Statistiques</div>
+  <div class="stat-row">
+    <div class="stat"><div class="num" id="s-total">–</div><div class="lbl">Impressions</div></div>
+    <div class="stat"><div class="num" id="s-err">–</div><div class="lbl">Erreurs</div></div>
+    <div class="stat"><div class="num" id="s-conso">–</div><div class="lbl">Filament (g)</div></div>
+  </div>
+</div>
 
-<div id="k1files" style="display:none">
+<div id="journal-view" style="display:none">
+  <div class="sec-title">📋 Historique des impressions</div>
+  <div id="sessions"></div>
+</div>
+
+<div id="filaments-view" style="display:none">
+  <div class="sec-title">🧵 Bobines Spoolman</div>
+  <div class="spool-grid" id="spool-grid"></div>
+  <div class="sec-title">📁 Bibliothèque K1</div>
   <div class="k1-grid" id="k1-grid"></div>
 </div>
 
@@ -158,7 +318,7 @@
     <div class="form-row"><label>📄 Analyser un .gcode (auto-remplit la conso + l'aperçu)</label>
       <input type="file" id="m-filepicker" accept=".gcode,.g,.gco" style="font-size:12px">
     </div>
-    <div class="form-row"><label>Fichier / modèle imprimé</label><input id="m-file" placeholder="Nom du fichier…"></div>
+    <div class="form-row"><label>Fichier / modèle imprimé</label><input type="text" id="m-file" placeholder="Nom du fichier…"></div>
     <div class="form-row"><label>Filament (bobine)</label><select id="m-spool"></select></div>
     <div class="form-row"><label>Filament consommé (grammes)</label><input id="m-grams" type="number" step="0.1" min="0" placeholder="0.0"></div>
     <div class="form-row" style="align-items:center">
@@ -178,8 +338,22 @@ const $ = id => document.getElementById(id);
 const API = '';
 let sessions = [];
 let spools = [];
+let k1Files = [];
 let editingId = null;
 let pendingThumbId = null;
+let activeTab = 'dashboard';
+
+const K1_NUM = {'0': 'stopped', '1': 'printing', '2': 'completed', '3': 'error', '4': 'stopped', '5': 'paused'};
+const STATE_LBL = {
+  printing: '🖨️ Impression', completed: '✅ Terminée', error: '⚠️ Erreur',
+  stopped: '⏹️ Arrêtée', paused: '⏸️ En pause', idle: '💤 En veille', offline: '📡 Hors ligne'
+};
+const SPOOL_ST = {
+  active: ['En service', 'b-active'], in_use: ['En cours', 'b-in_use'],
+  unused: ['Non utilisée', 'b-unused'], inactive: ['Inactive', 'b-inactive'],
+  archived: ['Archivée', 'b-archived']
+};
+const SPOOL_ORDER = {active: 0, in_use: 1, unused: 2, inactive: 3, archived: 4};
 
 async function api(path, opts = {}) {
   const r = await fetch(API + path, {
@@ -190,20 +364,95 @@ async function api(path, opts = {}) {
   return r.json();
 }
 
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  return d.toLocaleString('fr-FR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
+}
+
+function fmtTime(s) {
+  if (!s && s !== 0) return '';
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  if (h) return h + 'h' + String(m).padStart(2, '0');
+  return m + 'min';
+}
+
+function fmtMM(mm) {
+  if (mm == null) return '—';
+  if (mm >= 1000) return (mm / 1000).toFixed(2).replace('.', ',') + ' m';
+  return Math.round(mm) + ' mm';
+}
+
+function normState(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number' || /^\d+$/.test(String(raw).trim())) {
+    return K1_NUM[String(raw).trim()] || null;
+  }
+  const s = String(raw).toLowerCase();
+  if (s === 'second' || s === 'sla' || s === 'printing' || s === 'print' ||
+      s === 'printing_start' || s === 'printingstart' || s === 'printinging' || s === '1') return 'printing';
+  if (s === 'finish' || s === 'completed' || s === 'complete' || s === 'success' ||
+      s === 'print_success' || s === '2') return 'completed';
+  if (s === 'stop' || s === 'stopped' || s === 'abort' || s === 'aborted' ||
+      s === 'stopped_by_user' || s === '0' || s === '4') return 'stopped';
+  if (s === 'fail' || s === 'failed' || s === 'error' || s === 'exception' ||
+      s === 'print_failed' || s === '3') return 'error';
+  if (s === 'pause' || s === 'paused' || s === '5') return 'paused';
+  return s || null;
 }
 
 function badge(status) {
-  return `<span class="badge b-${status}">${status}</span>`;
+  return '<span class="badge b-' + status + '">' + escapeHtml(status || '?') + '</span>';
+}
+
+function gauge(el, label, value, max, unit) {
+  const v = Number.isFinite(value) ? Math.max(0, Math.min(value, max)) : 0;
+  const apply = target => {
+    target.val.setAttribute('stroke-dashoffset', (target.c * (1 - (max > 0 ? v / max : 0))).toFixed(2));
+    target.temp.textContent = Number.isFinite(value) ? String(Math.round(value)) : '–';
+  };
+  if (!el._g) {
+    const r = 48, c = 2 * Math.PI * r;
+    const gid = 'grad-' + el.id;
+    el.innerHTML =
+      '<div class="gauge-wrap">' +
+        '<svg class="gauge" viewBox="0 0 120 120">' +
+          '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="0">' +
+            '<stop offset="0%" stop-color="#3b82f6"/>' +
+            '<stop offset="45%" stop-color="#22d3ee"/>' +
+            '<stop offset="72%" stop-color="#f59e0b"/>' +
+            '<stop offset="100%" stop-color="#ef4444"/>' +
+          '</linearGradient></defs>' +
+          '<circle class="g-track" cx="60" cy="60" r="' + r + '"/>' +
+          '<circle class="g-val" cx="60" cy="60" r="' + r + '" stroke="url(#' + gid + ')" ' +
+            'stroke-dasharray="' + c.toFixed(2) + '" stroke-dashoffset="' + c.toFixed(2) + '"/>' +
+        '</svg>' +
+        '<div class="g-num"><span class="g-temp">–</span><small>' + unit + '</small></div>' +
+      '</div>' +
+      '<div class="g-lbl">' + label + '</div>';
+    el._g = {
+      c: c,
+      val: el.querySelector('.g-val'),
+      temp: el.querySelector('.g-temp')
+    };
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => apply(el._g));
+    });
+  } else {
+    apply(el._g);
+  }
 }
 
 async function load() {
+  let h = null;
   try {
-    const h = await api('/api/health');
-    $('conn').textContent = `K1: ${h.k1_url.replace('ws://','')} • ${h.connected ? 'impression en cours' : 'en veille'}`;
+    h = await api('/api/health');
   } catch (e) {
     $('conn').textContent = '⚠️ Collecteur injoignable';
   }
@@ -214,66 +463,112 @@ async function load() {
     const sp = await api('/api/spools');
     spools = Array.isArray(sp) ? sp : [];
   } catch (e) { spools = []; }
-  render();
+  renderAll(h);
 }
 
-function render() {
+function renderAll(h) {
+  renderDashboard(h);
+  renderStats();
+  renderSessions();
+  renderFilaments();
+}
+
+function renderDashboard(h) {
+  const online = !!(h && h.ws_connected);
+  const rawState = h ? normState(h.k1_state) : null;
+  const state = !h || !online ? 'offline' : (rawState || 'idle');
+  const pill = $('state-pill');
+  pill.className = 'state-pill pill-' + state;
+  pill.innerHTML = '<span class="dot"></span>' + (STATE_LBL[state] || escapeHtml(state));
+  $('live-conn').textContent = h
+    ? (h.k1_model ? 'K1 · ' + escapeHtml(h.k1_model) : 'K1') + ' • ' + (online ? 'connecté' : 'déconnecté')
+    : 'collecteur injoignable';
+  const file = (state === 'printing' || state === 'paused') && h && h.k1_file ? h.k1_file : null;
+  $('live-file').textContent = file ? '📄 ' + file : '—';
+
+  let pct = null;
+  if (state === 'printing') {
+    const act = sessions.find(s => s.status === 'printing');
+    if (act && act.progress != null) pct = Math.max(0, Math.min(100, act.progress * 100));
+  }
+  if (pct == null && h && h.k1_file) {
+    const f = k1Files.find(x => x.name === h.k1_file);
+    if (f && f.consumables_mm && h.k1_used_mm != null) {
+      pct = Math.max(0, Math.min(100, (h.k1_used_mm / f.consumables_mm) * 100));
+    }
+  }
+  const progRow = $('prog-row');
+  if (pct == null) {
+    progRow.style.display = 'none';
+  } else {
+    progRow.style.display = '';
+    $('prog-lbl').textContent = pct.toFixed(0) + ' %';
+    $('prog-bar').style.width = pct.toFixed(1) + '%';
+  }
+  $('d-fil').textContent = '🧵 ' + fmtMM(h ? h.k1_used_mm : null);
+  gauge($('g-nozzle'), 'Buse', h ? h.k1_nozzle : null, 300, '°C');
+  gauge($('g-bed'), 'Plateau', h ? h.k1_bed : null, 120, '°C');
+}
+
+function renderStats() {
   const total = sessions.length;
   const errs = sessions.filter(s => s.status === 'error').length;
   const conso = sessions.reduce((a, s) => a + (s.filament_grams || 0), 0);
   $('s-total').textContent = total;
   $('s-err').textContent = errs;
   $('s-conso').textContent = conso.toFixed(1);
-
-  const box = $('sessions');
-  box.innerHTML = '';
-  if (!sessions.length) {
-    box.innerHTML = '<div class="empty">Aucune impression enregistrée.<br>Lance une impression depuis Creality Print, ou clique le bouton vert pour saisir manuellement.</div>';
-    return;
-  }
-  sessions.forEach(s => {
-    const div = document.createElement('div');
-    div.className = 'session';
-    const spoolName = s.spool_id ? (spoolById(s.spool_id) || `Bobine #${s.spool_id}`) : null;
-    const thumbHtml = s.thumb_url
-      ? `<img class="sess-thumb" src="${s.thumb_url}" alt="modèle" loading="lazy">`
-      : `<div class="sess-thumb sess-thumb-none">🖨️</div>`;
-    div.innerHTML = `
-      <div class="sess-top">
-        <div class="sess-title">
-          ${thumbHtml}
-          <div>
-            <div class="sess-file">${escapeHtml(s.file_name || 'inconnu')}</div>
-            <div class="sess-meta">
-              ${fmtDate(s.start_time)}${s.end_time ? ' → ' + fmtDate(s.end_time) : ''}
-              ${s.error ? ' • ❌ ' + escapeHtml(s.error) : ''}
-              ${spoolName ? ' • 🧵 ' + spoolName : ''}
-              ${s.filament_grams ? ' • ' + s.filament_grams + ' g' : ''}
-              ${s.material_mm ? ' • ' + Math.round(s.material_mm) + ' mm' : ''}
-            </div>
-          </div>
-        </div>
-        ${badge(s.status || '?')}
-      </div>
-      ${s.status === 'completed' || s.status === 'error' || s.status === 'stopped' ?
-        `<div class="sess-actions">
-          <button onclick="editSession('${s.id}')">🧵 Associer filament</button>
-          ${s.status === 'completed' ? `<button class="ghost" onclick="markError('${s.id}')">❌ Marquer erreur</button>` : ''}
-        </div>` : ''}
-    `;
-    box.appendChild(div);
-  });
 }
 
 function spoolById(id) {
   const sp = spools.find(x => x.id === id);
   if (!sp) return null;
   const f = sp.filament;
-  return `${f ? f.name || 'Spool' : 'Spool'} (${sp.remaining_weight || 0}g rest.)`;
+  return (f && f.name ? f.name : 'Spool') + ' (' + (sp.remaining_weight || 0) + 'g rest.)';
 }
 
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function renderSessions() {
+  const box = $('sessions');
+  box.innerHTML = '';
+  if (!sessions.length) {
+    box.innerHTML = '<div class="empty">Aucune impression enregistrée.<br>Lance une impression depuis Creality Print, ou clique le bouton + pour saisir manuellement.</div>';
+    return;
+  }
+  sessions.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'session';
+    const spoolName = s.spool_id ? (spoolById(s.spool_id) || 'Bobine #' + s.spool_id) : null;
+    const thumbHtml = s.thumb_url
+      ? '<img class="sess-thumb" src="' + s.thumb_url + '" alt="modèle" loading="lazy">'
+      : '<div class="sess-thumb sess-thumb-none">🖨️</div>';
+    const progBar = s.status === 'printing' && s.progress != null
+      ? '<div class="progress-wrap sess-progress"><div class="progress-bar" style="width:' + (s.progress * 100).toFixed(1) + '%"></div></div>'
+      : '';
+    div.innerHTML =
+      '<div class="sess-top">' +
+        '<div class="sess-title">' +
+          thumbHtml +
+          '<div>' +
+            '<div class="sess-file">' + escapeHtml(s.file_name || 'inconnu') + '</div>' +
+            '<div class="sess-meta">' +
+              fmtDate(s.start_time) + (s.end_time ? ' → ' + fmtDate(s.end_time) : '') +
+              (s.error ? ' • ❌ ' + escapeHtml(s.error) : '') +
+              (spoolName ? ' • 🧵 ' + escapeHtml(spoolName) : '') +
+              (s.filament_grams ? ' • ' + s.filament_grams + ' g' : '') +
+              (s.material_mm ? ' • ' + Math.round(s.material_mm) + ' mm' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        badge(s.status || '?') +
+      '</div>' +
+      progBar +
+      (s.status === 'completed' || s.status === 'error' || s.status === 'stopped'
+        ? '<div class="sess-actions">' +
+            '<button onclick="editSession(\'' + s.id + '\')">🧵 Associer filament</button>' +
+            (s.status === 'completed' ? '<button class="ghost" onclick="markError(\'' + s.id + '\')">❌ Marquer erreur</button>' : '') +
+          '</div>'
+        : '');
+    box.appendChild(div);
+  });
 }
 
 function fillSpoolSelect(sel, selected) {
@@ -282,10 +577,50 @@ function fillSpoolSelect(sel, selected) {
     const f = sp.filament || {};
     const opt = document.createElement('option');
     opt.value = sp.id;
-    opt.textContent = `${f.name || 'Spool'} — ${f.material || ''} ${f.color_hex ? '●' : ''} (${sp.remaining_weight || '?'}g)`;
+    opt.textContent = (f.name || 'Spool') + ' — ' + (f.material || '') +
+      (f.color_hex ? ' ●' : '') + ' (' + (sp.remaining_weight || '?') + 'g)';
     if (sp.id === selected) opt.selected = true;
     sel.appendChild(opt);
   });
+}
+
+function renderFilaments() {
+  const grid = $('spool-grid');
+  if (!spools.length) {
+    grid.innerHTML = '<div class="empty">🧵 Aucune bobine — ajoute-en dans Spoolman.</div>';
+    return;
+  }
+  const sorted = spools.slice().sort(
+    (a, b) => (SPOOL_ORDER[a.status] ?? 5) - (SPOOL_ORDER[b.status] ?? 5)
+  );
+  grid.innerHTML = sorted.map(spoolCard).join('');
+}
+
+function spoolCard(sp) {
+  const f = sp.filament || {};
+  const hex = f.color_hex || null;
+  const rest = sp.remaining_weight;
+  const st = SPOOL_ST[sp.status] || null;
+  const ratio = sp.initial_weight ? Math.max(0, Math.min(1, rest / sp.initial_weight)) : null;
+  const bar = ratio == null
+    ? ''
+    : '<div class="spool-bar"><i class="' +
+      (ratio > .5 ? 'bar-high' : ratio > .2 ? 'bar-med' : 'bar-low') +
+      '" style="width:' + (ratio * 100).toFixed(0) + '%"></i></div>';
+  return '<div class="spool-card">' +
+    '<div class="spool-top">' +
+      (hex
+        ? '<div class="spool-color" style="background:' + escapeHtml(hex) + '"></div>'
+        : '<div class="spool-color" style="background:linear-gradient(135deg,#334155,#1e293b)">🧵</div>') +
+      (st ? '<span class="badge ' + st[1] + '">' + st[0] + '</span>' : '') +
+    '</div>' +
+    '<div class="spool-name">' + escapeHtml(f.name || 'Bobine #' + sp.id) + '</div>' +
+    '<div class="spool-mat">' + escapeHtml(f.material || 'matériau inconnu') + '</div>' +
+    '<div class="spool-rest">' +
+      (rest != null ? rest + ' <span class="unit">g restants</span>' : '<span class="unit">poids inconnu</span>') +
+    '</div>' +
+    bar +
+  '</div>';
 }
 
 function openManual() {
@@ -298,11 +633,10 @@ function openManual() {
   $('m-thumb-preview').classList.remove('show');
   $('m-thumb-preview').removeAttribute('src');
   fillSpoolSelect($('m-spool'));
-  $('m-debit').checked = true;  // nouvelle saisie → décompte par défaut
+  $('m-debit').checked = true;
   $('modal').classList.add('open');
 }
 
-// Analyse d'un .gcode : pré-remplit fichier + conso estimée + aperçu
 $('m-filepicker').addEventListener('change', async function () {
   const f = this.files[0];
   if (!f) return;
@@ -336,8 +670,6 @@ function editSession(id) {
   $('m-file').value = s.file_name || '';
   $('m-grams').value = s.filament_grams || '';
   fillSpoolSelect($('m-spool'), s.spool_id);
-  // Sessions historiques importées (k1h*) : déjà consommées avant la pesée des
-  // bobines → par défaut on NE décompte PAS (sinon double comptage).
   const historical = String(id).startsWith('k1h');
   $('m-debit').checked = !historical;
   $('modal').classList.add('open');
@@ -359,7 +691,6 @@ async function saveSession() {
         body: JSON.stringify({spool_id: spoolId, filament_grams: grams, debit: debit})
       });
     } else {
-      // création manuelle : on l'ajoute en base via une session*
       await api('/api/sessions/' + Date.now().toString(16) + '/manual', {
         method: 'PUT',
         body: JSON.stringify({file_name: file, thumb_id: pendingThumbId, debit: debit})
@@ -386,22 +717,13 @@ async function markError(id) {
 }
 
 function showTab(name) {
-  $('tab-journal').classList.toggle('active', name === 'journal');
-  $('tab-imprimante').classList.toggle('active', name === 'imprimante');
-  $('sessions').style.display = name === 'journal' ? '' : 'none';
-  $('k1files').style.display = name === 'imprimante' ? '' : 'none';
-  if (name === 'imprimante') loadK1Files();
-}
-
-let k1Files = [];
-let activeSessionId = null;
-
-function fmtTime(s) {
-  if (!s && s !== 0) return '';
-  s = Math.round(s);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
-  if (h) return h + 'h' + String(m).padStart(2, '0');
-  return m + 'min';
+  activeTab = name;
+  ['dashboard', 'journal', 'filaments'].forEach(t =>
+    $('tab-' + t).classList.toggle('active', t === name));
+  $('dash').style.display = name === 'dashboard' ? '' : 'none';
+  $('journal-view').style.display = name === 'journal' ? '' : 'none';
+  $('filaments-view').style.display = name === 'filaments' ? '' : 'none';
+  if (name === 'filaments') loadK1Files();
 }
 
 async function loadK1Files() {
@@ -412,15 +734,22 @@ async function loadK1Files() {
     if (!r.ok) throw new Error(d.error || 'erreur');
     k1Files = d.files || [];
     if (!k1Files.length) {
-      grid.innerHTML = '<div class="k1-empty">📁 Aucun fichier — la liste se remplit ~1 min après l\'allumage<br><br><button class="k1-refresh" onclick="refreshK1()">🔄 Rafraîchir</button></div>';
+      grid.innerHTML = '<div class="k1-empty">📁 Aucun fichier — la liste se remplit ~1 min après l\'allumage<br><br>' +
+        '<button class="k1-refresh" onclick="refreshK1()">🔄 Rafraîchir</button></div>';
       return;
     }
-    grid.innerHTML = k1Files.map((f, i) => `
-      <div class="k1-card" onclick="useK1File(${i})" title="${escapeHtml(f.name)}">
-        ${f.thumb_url ? `<img src="${f.thumb_url}" loading="lazy" alt="">` : '<div style="height:90px;display:flex;align-items:center;justify-content:center;background:#0b1526;border-radius:8px;color:var(--muted)">🖨️</div>'}
-        <div class="k1-name">${escapeHtml(f.name)}</div>
-        <div class="k1-mat">${escapeHtml((f.material || '').replace(/;/g, ' + '))}${f.grams ? ' &nbsp;•&nbsp; ⚖️ ' + f.grams + 'g' : ''}${f.time_s ? ' &nbsp;•&nbsp; ⏱ ' + fmtTime(f.time_s) : ''}</div>
-      </div>`).join('') +
+    grid.innerHTML = k1Files.map((f, i) =>
+      '<div class="k1-card" onclick="useK1File(' + i + ')" title="' + escapeHtml(f.name) + '">' +
+        (f.thumb_url
+          ? '<img src="' + f.thumb_url + '" loading="lazy" alt="">'
+          : '<div class="k1-thumb-none">🖨️</div>') +
+        '<div class="k1-name">' + escapeHtml(f.name) + '</div>' +
+        '<div class="k1-mat">' +
+          escapeHtml((f.material || '').replace(/;/g, ' + ')) +
+          (f.grams ? ' • ⚖️ ' + f.grams + 'g' : '') +
+          (f.time_s ? ' • ⏱ ' + fmtTime(f.time_s) : '') +
+        '</div>' +
+      '</div>').join('') +
       '<button class="k1-refresh" onclick="refreshK1()">🔄 Rafraîchir la liste</button>';
   } catch (e) {
     grid.innerHTML = '<div class="k1-empty">❌ ' + escapeHtml(e.message) + '</div>';
@@ -429,7 +758,6 @@ async function loadK1Files() {
 
 async function refreshK1() {
   toast('🔄 Demande de rafraîchissement…');
-  // Déclenche un scan immédiat : on appelle l'API puis on recharge après 20s
   await loadK1Files();
   setTimeout(loadK1Files, 15000);
 }
@@ -437,18 +765,13 @@ async function refreshK1() {
 function useK1File(idx) {
   const f = k1Files[idx];
   if (!f) return;
-  // Associer ce fichier à une session ? Sinon ouvre la saisie pré-remplie
   const recent = sessions.filter(s => s.status === 'completed' || s.status === 'error' || s.status === 'stopped');
   if (recent.length) {
-    const names = recent.map((s, i) => `${i + 1}. ${s.file_name}`).join('\n');
-    const pick = prompt(`🧵 Associer « ${f.name} » à quelle session ?\n(1-${recent.length}, ou vide = nouvelle saisie)\n\n${names}`);
+    const names = recent.map((s, i) => (i + 1) + '. ' + s.file_name).join('\n');
+    const pick = prompt('🧵 Associer « ' + f.name + ' » à quelle session ?\n(1-' + recent.length + ', ou vide = nouvelle saisie)\n\n' + names);
     if (pick === null) return;
     const n = parseInt(pick, 10);
-    if (n >= 1 && n <= recent.length) {
-      activeSessionId = recent[n - 1].id;
-    } else {
-      activeSessionId = null;
-    }
+    activeSessionId = (n >= 1 && n <= recent.length) ? recent[n - 1].id : null;
   } else {
     activeSessionId = null;
   }
@@ -468,6 +791,8 @@ function useK1File(idx) {
   $('modal').classList.add('open');
 }
 
+let activeSessionId = null;
+
 function toast(msg) {
   const t = $('toast');
   t.textContent = msg;
@@ -476,7 +801,8 @@ function toast(msg) {
 }
 
 load();
-setInterval(load, 8000);
+loadK1Files();
+setInterval(load, 6000);
 </script>
 </body>
 </html>
