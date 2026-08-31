@@ -7,6 +7,7 @@
 <div align="center">
 
 [![Licence](https://img.shields.io/badge/Licence-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Release-v1.0.0-2ea44f.svg)](https://github.com/Anto5314/filament-tracker/releases)
 [![Docker](https://img.shields.io/badge/Docker-✓_Ready-2496ed.svg?logo=docker&logoColor=white)](docker-compose.yml)
 [![Python](https://img.shields.io/badge/Python-3.12-3776ab.svg?logo=python&logoColor=white)](collector.py)
 [![PWA](https://img.shields.io/badge/PWA-Mobile_Ready-5a0fc8.svg?logo=pwa&logoColor=white)](static/manifest.webmanifest)

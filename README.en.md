@@ -4,6 +4,17 @@
 
 > ⚠️ **LOCAL USE ONLY** — This project is designed to run on a **trusted local network** (your home network). The API has **no authentication**: **never expose it to the Internet** without adding protection (reverse proxy with password, VPN, etc.). Plain-text connections (HTTP/WebSocket) — home use only.
 
+<div align="center">
+
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/Release-v1.0.0-2ea44f.svg)](https://github.com/Anto5314/filament-tracker/releases)
+[![Docker](https://img.shields.io/badge/Docker-✓_Ready-2496ed.svg?logo=docker&logoColor=white)](docker-compose.yml)
+[![Python](https://img.shields.io/badge/Python-3.12-3776ab.svg?logo=python&logoColor=white)](collector.py)
+[![PWA](https://img.shields.io/badge/PWA-Mobile_Ready-5a0fc8.svg?logo=pwa&logoColor=white)](static/manifest.webmanifest)
+[![Compatibility](https://img.shields.io/badge/Compatibility-K1_•_K1C_•_K1_SE_•_K1_Max_•_K2_•_Ender--3_V3-22c55e.svg)](README.en.md#-compatibility)
+
+</div>
+
 **🇫🇷 Version française : [README.md](README.md)**
 
 Filament Tracker connects to the **proprietary WebSocket (port 9999)** of the K1SE (CrealityOS firmware), tracks prints **in real time**, imports the **complete history** of past prints, **downloads model thumbnails**, and syncs with **Spoolman** to manage the filament weight remaining on each spool.
