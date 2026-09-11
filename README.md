@@ -49,6 +49,11 @@ Votre K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe
 | 🖥️ | **Mock K1 inclus** | Un simulateur d'imprimante (`mock_k1.py`) permet de tester toute l'appli sans toucher à votre machine |
 | 🔄 | **Reconnexion automatique** | Watchdog de silence : si l'imprimante est éteinte ou en veille, le collecteur se reconnecte toutes les 10 s |
 | 🔒 | **Aucun doublon** | L'import d'historique est idempotent et fusionne avec les sessions créées en direct |
+| 🔎 | **Recherche et filtres du journal** | Recherche instantanée par nom de fichier et filtre par statut, avec états vides explicites |
+| 🚦 | **Alertes de stock** | Les bobines à 20 % ou moins sont signalées sur le dashboard et dans l'inventaire |
+| 🖨️ | **Vue desktop + impression** | Mise en page responsive élargie, contrôles tactiles et feuille de style dédiée à l'impression |
+
+> Les seuils d'alerte sont calculés côté interface à partir de `remaining_weight / initial_weight`. Aucune donnée supplémentaire n'est écrite dans Spoolman.
 
 ---
 
@@ -173,6 +178,19 @@ Chaque job contient : `id` unique, `filename`, `starttime`, `usagetime` (s), `us
 
 ### Watchdog
 L'imprimante éteinte brutalement laisse le WebSocket bloqué (aucune erreur levée). Le watchdog détecte le silence (>8 s → sonde, >30 s → fermeture) et relance la connexion toutes les 10 s.
+
+---
+
+## 🔒 Données et mises à jour
+
+Les données persistantes sont conservées dans deux volumes Docker nommés : `collector-data` (SQLite `k1_sessions.db` et miniatures) et `spoolman-data` (base Spoolman). Une mise à jour standard est additive :
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Ne supprimez pas les volumes (`docker compose down -v`) : cela effacerait l'historique et les bobines. Les migrations SQLite intégrées utilisent `CREATE TABLE IF NOT EXISTS` et ajoutent uniquement les colonnes manquantes.
 
 ---
 

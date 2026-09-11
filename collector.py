@@ -206,6 +206,21 @@ def monthly_stats():
     return {"months": out, "total": total}
 
 
+def summary_stats():
+    """Return dashboard totals without the journal pagination limit."""
+    con = db_conn()
+    row = con.execute("SELECT COUNT(*), SUM(status = 'completed'), SUM(status = 'error'), SUM(status = 'stopped'), SUM(COALESCE(filament_grams, 0)) FROM sessions").fetchone()
+    con.close()
+    total, completed, errors, stopped, grams = row
+    finished = (completed or 0) + (errors or 0) + (stopped or 0)
+    return {"total": total or 0, "completed": completed or 0, "errors": errors or 0,
+            "grams": round(grams or 0, 2), "finished": finished}
+
+
+async def api_summary(request):
+    return aiohttp.web.json_response(summary_stats())
+
+
 async def api_stats(request):
     """GET /api/stats — stats mensuelles + totaux."""
     return aiohttp.web.json_response(monthly_stats())
@@ -1069,6 +1084,7 @@ async def build_app():
     app.router.add_get("/api/spools", api_spools)
     app.router.add_get("/api/k1/files", api_k1_files)
     app.router.add_get("/api/health", api_health)
+    app.router.add_get("/api/summary", api_summary)
     app.router.add_get("/api/stats", api_stats)
     app.router.add_get("/", _static)
     app.router.add_get("/thumbs/{tid}", api_thumb)

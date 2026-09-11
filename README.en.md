@@ -49,6 +49,11 @@ Your K1SE runs **CrealityOS** (Klipper **without Moonraker**): there is no simpl
 | 🖥️ | **Mock K1 included** | A printer simulator (`mock_k1.py`) lets you test the whole app without risking your machine |
 | 🔄 | **Auto-reconnect** | Silence watchdog: if the printer is off or asleep, the collector reconnects every 10 s |
 | 🔒 | **No duplicates** | History import is idempotent and merges with live-created sessions |
+| 🔎 | **Journal search and filters** | Instant filename search and status filter, with explicit empty states |
+| 🚦 | **Stock alerts** | Spools at 20% or less are highlighted on the dashboard and inventory view |
+| 🖨️ | **Desktop + print view** | Wider responsive layout, touch-friendly controls and a dedicated print stylesheet |
+
+> Alert thresholds are calculated in the UI from `remaining_weight / initial_weight`. No additional data is written to Spoolman.
 
 ---
 
@@ -173,6 +178,19 @@ Each job contains: unique `id`, `filename`, `starttime`, `usagetime` (s), `usage
 
 ### Watchdog
 A printer unplugged abruptly leaves the WebSocket stuck (no error raised). The watchdog detects the silence (>8 s → probe, >30 s → close) and restarts the connection every 10 s.
+
+---
+
+## 🔒 Data and updates
+
+Persistent data lives in two named Docker volumes: `collector-data` (SQLite `k1_sessions.db` and thumbnails) and `spoolman-data` (Spoolman's database). A standard update is additive:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Do not remove volumes (`docker compose down -v`): that would delete print history and spools. Built-in SQLite migrations use `CREATE TABLE IF NOT EXISTS` and only add missing columns.
 
 ---
 

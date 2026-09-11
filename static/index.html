@@ -23,8 +23,8 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
     background: radial-gradient(1100px 520px at 50% -12%, #111c2b 0%, var(--bg) 55%);
     background-attachment: fixed;
-    color: var(--text); padding: 14px 14px 100px;
-    max-width: 700px; margin: 0 auto;
+    color: var(--text); padding: 18px 18px 100px;
+    max-width: 1180px; margin: 0 auto;
     font-variant-numeric: tabular-nums;
   }
   h1 { font-size: 21px; margin: 4px 0 2px; letter-spacing: .2px; }
@@ -126,7 +126,7 @@
   }
   .g-num small { font-size: 10.5px; font-weight: 700; color: var(--muted); margin-top: 3px; letter-spacing: .5px; }
   .g-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; margin-top: 8px; font-weight: 700; }
-  .stat-row { display: flex; gap: 10px; }
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .stat {
     flex: 1; background: var(--card); border: 1px solid var(--border);
     border-radius: 14px; padding: 11px 6px; text-align: center;
@@ -169,7 +169,14 @@
   }
   button.k1-refresh { width: 100%; margin-top: 10px; padding: 9px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
   .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
-  select, input[type=number], input[type=text] {
+  .toolbar { display: grid; grid-template-columns: minmax(0, 1fr) 150px auto; gap: 8px; margin-bottom: 12px; }
+  .toolbar input, .toolbar select { min-width: 0; }
+  .alert-strip { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .alert { padding: 8px 11px; border-radius: 11px; font-size: 12px; font-weight: 700; border: 1px solid rgba(245,158,11,.35); background: rgba(245,158,11,.1); color: #fbbf24; }
+  .alert.ok { border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.1); color: #4ade80; }
+  @media (max-width: 620px) { body { padding: 12px 10px 92px; } .tabs { gap: 5px; } .tab { font-size: 11px; padding: 10px 2px; } .toolbar { grid-template-columns: 1fr 1fr; } .toolbar input { grid-column: 1 / -1; } }
+  @media print { body { background: #fff; color: #111; max-width: none; padding: 0; } .tabs, .fab, .sess-actions, #modal, .toast { display: none !important; } .card, .session, .spool-card, .stat { border: 1px solid #bbb; box-shadow: none; background: #fff; color: #111; } .sub, .sess-meta, .spool-mat, .stat .lbl { color: #555; } }
+  select, input[type=number], input[type=text], input[type=search] {
     background: var(--bg); color: var(--text); border: 1px solid var(--border);
     border-radius: 10px; padding: 9px 10px; font-size: 14px; width: 100%;
     font-family: inherit;
@@ -325,18 +332,25 @@
   <div class="sec-title">📈 Statistiques</div>
   <div class="stat-row">
     <div class="stat"><div class="num" id="s-total">–</div><div class="lbl">Impressions</div></div>
-    <div class="stat"><div class="num" id="s-err">–</div><div class="lbl">Erreurs</div></div>
+    <div class="stat"><div class="num" id="s-success">–</div><div class="lbl">Réussite</div></div>
     <div class="stat"><div class="num" id="s-conso">–</div><div class="lbl">Filament (g)</div></div>
   </div>
+  <div class="alert-strip" id="stock-alerts" aria-live="polite"></div>
 </div>
 
 <div id="journal-view" style="display:none">
   <div class="sec-title">📋 Historique des impressions</div>
-  <div id="sessions"></div>
+  <div class="toolbar" role="search">
+    <input id="session-search" type="search" placeholder="Rechercher un fichier…" aria-label="Rechercher dans le journal" oninput="renderSessions()">
+    <select id="session-status" aria-label="Filtrer par statut" onchange="renderSessions()"><option value="">Tous les statuts</option><option value="printing">En cours</option><option value="completed">Terminées</option><option value="error">Erreurs</option><option value="stopped">Arrêtées</option><option value="paused">En pause</option></select>
+    <button class="ghost" onclick="resetSessionFilters()">Réinitialiser</button>
+  </div>
+  <div id="sessions" aria-live="polite"></div>
 </div>
 
 <div id="filaments-view" style="display:none">
   <div class="sec-title">🧵 Bobines Spoolman</div>
+  <div class="alert-strip" id="spool-alerts" aria-live="polite"></div>
   <div class="spool-grid" id="spool-grid"></div>
   <div class="sec-title">📁 Bibliothèque K1</div>
   <div class="k1-grid" id="k1-grid"></div>
@@ -387,6 +401,8 @@ let k1Files = [];
 let editingId = null;
 let pendingThumbId = null;
 let activeTab = 'dashboard';
+let spoolsError = null;
+let summary = null;
 
 const K1_NUM = {'0': 'stopped', '1': 'printing', '2': 'completed', '3': 'error', '4': 'stopped', '5': 'paused'};
 const STATE_LBL = {
@@ -506,14 +522,18 @@ async function load() {
   } catch (e) { sessions = []; }
   try {
     const sp = await api('/api/spools');
-    spools = Array.isArray(sp) ? sp : [];
-  } catch (e) { spools = []; }
+    spools = Array.isArray(sp) ? sp : (() => { throw new Error('réponse Spoolman invalide'); })();
+    spoolsError = null;
+  } catch (e) { spools = []; spoolsError = e; }
+  try {
+    summary = await api('/api/summary');
+  } catch (e) { summary = null; }
   renderAll(h);
 }
 
 function renderAll(h) {
   renderDashboard(h);
-  renderStats();
+  renderStats(summary);
   renderSessions();
   renderFilaments();
 }
@@ -566,13 +586,22 @@ function renderDashboard(h) {
   gauge($('g-bed'), 'Plateau', h ? h.k1_bed : null, 120, '°C');
 }
 
-function renderStats() {
-  const total = sessions.length;
-  const errs = sessions.filter(s => s.status === 'error').length;
-  const conso = sessions.reduce((a, s) => a + (s.filament_grams || 0), 0);
+function stockRatio(sp) {
+  const rest = Number(sp && sp.remaining_weight), initial = Number(sp && sp.initial_weight);
+  return Number.isFinite(rest) && Number.isFinite(initial) && initial > 0 && rest >= 0 ? Math.max(0, Math.min(1, rest / initial)) : null;
+}
+
+function renderStats(summaryData) {
+  const total = summaryData ? summaryData.total : sessions.length;
+  const finished = summaryData ? summaryData.finished : sessions.filter(s => ['completed','error','stopped'].includes(s.status)).length;
+  const completed = summaryData ? summaryData.completed : sessions.filter(s => s.status === 'completed').length;
+  const success = finished ? Math.round(100 * completed / finished) : 0;
+  const conso = summaryData ? summaryData.grams : sessions.reduce((a, s) => a + (Number(s.filament_grams) || 0), 0);
   $('s-total').textContent = total;
-  $('s-err').textContent = errs;
+  $('s-success').textContent = finished ? success + '%' : '–';
   $('s-conso').textContent = conso.toFixed(1);
+  const low = spools.filter(s => stockRatio(s) != null && stockRatio(s) <= .2);
+  $('stock-alerts').innerHTML = spoolsError ? '<span class="alert">⚠️ Spoolman indisponible — stock non vérifié</span>' : (low.length ? '<span class="alert">⚠️ ' + low.length + ' bobine' + (low.length > 1 ? 's' : '') + ' bientôt vide' + (low.length > 1 ? 's' : '') + '</span>' : '<span class="alert ok">✓ Stock sans alerte</span>');
 }
 
 function spoolById(id) {
@@ -585,11 +614,18 @@ function spoolById(id) {
 function renderSessions() {
   const box = $('sessions');
   box.innerHTML = '';
+  const query = ($('session-search')?.value || '').trim().toLowerCase();
+  const status = $('session-status')?.value || '';
+  const filtered = sessions.filter(s => (!query || String(s.file_name || '').toLowerCase().includes(query)) && (!status || s.status === status));
   if (!sessions.length) {
-    box.innerHTML = '<div class="empty">Aucune impression enregistrée.<br>Lance une impression depuis Creality Print, ou clique le bouton + pour saisir manuellement.</div>';
+    box.innerHTML = '<div class="empty">Aucune impression enregistrée.<br>Lancez une impression depuis Creality Print, ou utilisez le bouton +.</div>';
     return;
   }
-  sessions.forEach(s => {
+  if (!filtered.length) {
+    box.innerHTML = '<div class="empty">Aucun résultat pour ces filtres.<br><button class="ghost" onclick="resetSessionFilters()">Réinitialiser</button></div>';
+    return;
+  }
+  filtered.forEach(s => {
     const div = document.createElement('div');
     div.className = 'session';
     const spoolName = s.spool_id ? (spoolById(s.spool_id) || 'Bobine #' + s.spool_id) : null;
@@ -642,6 +678,8 @@ function fillSpoolSelect(sel, selected) {
 
 function renderFilaments() {
   const grid = $('spool-grid');
+  const low = spools.filter(s => stockRatio(s) != null && stockRatio(s) <= .2);
+  $('spool-alerts').innerHTML = spoolsError ? '<span class="alert">⚠️ Spoolman indisponible — réessayez plus tard</span>' : (low.length ? low.map(s => '<span class="alert">⚠️ ' + escapeHtml((s.filament || {}).name || 'Bobine #' + s.id) + ' : ' + s.remaining_weight + ' g</span>').join('') : '<span class="alert ok">✓ Aucun seuil critique</span>');
   if (!spools.length) {
     grid.innerHTML = '<div class="empty">🧵 Aucune bobine — ajoute-en dans Spoolman.</div>';
     return;
@@ -657,7 +695,7 @@ function spoolCard(sp) {
   const hex = f.color_hex || null;
   const rest = sp.remaining_weight;
   const st = SPOOL_ST[sp.status] || null;
-  const ratio = sp.initial_weight ? Math.max(0, Math.min(1, rest / sp.initial_weight)) : null;
+  const ratio = stockRatio(sp);
   const bar = ratio == null
     ? ''
     : '<div class="spool-bar"><i class="' +
@@ -771,6 +809,8 @@ async function markError(id) {
     load();
   } catch (e) { toast('❌ ' + e.message); }
 }
+
+function resetSessionFilters() { $('session-search').value = ''; $('session-status').value = ''; renderSessions(); }
 
 function showTab(name) {
   activeTab = name;
