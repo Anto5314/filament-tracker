@@ -27,7 +27,7 @@ Votre K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe
 
 - **Vous imprimez → le journal se remplit automatiquement** (nom du fichier, statut, filament réellement consommé)
 - **Toutes vos impressions passées sont importées** depuis l'historique de l'imprimante (terminées **et** arrêtées)
-- **Vous voyez vos modèles avec leur miniature** dans l'onglet « Filaments »
+- **Vous voyez vos modèles avec leur miniature** dans l'onglet « Filaments », avec poids, durée et coût estimatif lorsque Spoolman fournit prix et poids
 - **Vous associez une impression à une bobine** → le poids restant se décompte automatiquement dans Spoolman
 - **Un dashboard temps réel** montre l'état de l'imprimante (températures buse/plateau, fichier en cours, statistiques)
 
@@ -37,7 +37,7 @@ Votre K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe
 
 | 🎯 | Fonctionnalité | Détails |
 |---|---|---|
-| 📋 | **Journal automatique** | Chaque impression démarre une session : fichier, heure, statut (terminée / arrêtée / erreur), durée, filament mesuré (`usedMaterialLength`) |
+| 📋 | **Journal automatique** | Chaque impression démarre une session : fichier, heure, statut (terminée / arrêtée / erreur), durée, filament mesuré (`usedMaterialLength`), et coût calculé depuis la bobine Spoolman associée |
 | 📜 | **Import rétroactif** | L'historique complet de l'imprimante (`historyList`) est importé automatiquement — toutes les impressions passées apparaissent dans le journal |
 | 📊 | **Dashboard imprimante** | État temps réel : connexion WS, températures buse/plateau, fichier en cours, statistiques globales — rafraîchi toutes les 6 s |
 | 📈 | **Stats mensuelles** | Onglet dédié : impressions / mois, filament consommé (g), durée d'impression, taux de réussite — avec graphique en barres |

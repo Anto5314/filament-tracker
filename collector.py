@@ -486,6 +486,47 @@ class Tracker:
 
 
 # ---------- Spoolman ----------
+def _numeric(value):
+    """Retourne un nombre fini ou None, sans faire échouer l'API."""
+    try:
+        value = float(value)
+        return value if value == value and abs(value) != float("inf") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def spool_price_per_gram(spool):
+    """Extrait un prix/g depuis les variantes usuelles de Spoolman."""
+    if not isinstance(spool, dict):
+        return None
+    sources = [spool[key] for key in ("filament", "material", "spool")
+               if isinstance(spool.get(key), dict)] + [spool]
+    for source in sources:
+        for key in ("price_per_gram", "cost_per_gram", "price_per_g", "cost_per_g"):
+            value = _numeric(source.get(key))
+            if value is not None and value >= 0:
+                return value
+        for key in ("price_per_kg", "cost_per_kg"):
+            value = _numeric(source.get(key))
+            if value is not None and value >= 0:
+                return value / 1000.0
+        price = next((_numeric(source.get(k)) for k in ("price", "cost")
+                      if _numeric(source.get(k)) is not None), None)
+        weight = next((_numeric(source.get(k)) for k in
+                       ("weight", "initial_weight", "filament_weight", "net_weight")
+                       if _numeric(source.get(k)) is not None), None)
+        if price is not None and price >= 0 and weight is not None and weight > 0:
+            return price / weight
+    return None
+
+
+def estimate_filament_cost(grams, spool):
+    """Calcule un coût sans inventer de prix ou de poids Spoolman."""
+    grams = _numeric(grams)
+    rate = spool_price_per_gram(spool)
+    return round(grams * rate, 4) if grams is not None and grams >= 0 and rate is not None else None
+
+
 async def spoolman_get(client, path):
     async with client.get(f"{SPOOLMAN_URL}/api/v1{path}") as r:
         text = await r.text()

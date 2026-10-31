@@ -7,7 +7,9 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
-required = ("session-search", "session-status", "stock-alerts", "spool-alerts", "/api/summary", "@media print")
+required = ("session-search", "session-status", "stock-alerts", "spool-alerts", "/api/summary",
+           "@media print", "Coût absent (bobine non associée)", "Coût estimatif indisponible",
+           "sessionDuration", "spoolPricePerGram")
 missing = [marker for marker in required if marker not in html]
 if missing:
     raise SystemExit(f"missing UI markers: {', '.join(missing)}")
@@ -26,6 +28,9 @@ try:
         columns = {row[1] for row in con.execute("PRAGMA table_info(sessions)")}
         rows = con.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
     assert rows == 1 and {"id", "file_name", "status", "thumb"} <= columns
+    assert collector.estimate_filament_cost(100, {"filament": {"price": 20, "weight": 1000}}) == 2
+    assert collector.estimate_filament_cost(100, {"filament": {"price": 20}}) is None
+    assert collector.estimate_filament_cost(100, {"filament": {"price_per_kg": 20}}) == 2
 finally:
     Path(db_path).unlink(missing_ok=True)
 print("Filament Tracker verification: OK")

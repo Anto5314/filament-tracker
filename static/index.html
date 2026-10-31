@@ -444,6 +444,53 @@ function fmtTime(s) {
   return m + 'min';
 }
 
+function numberOrNull(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function spoolPricePerGram(sp) {
+  if (!sp || typeof sp !== 'object') return null;
+  const sources = [sp.filament, sp.material, sp.spool, sp].filter(x => x && typeof x === 'object');
+  for (const src of sources) {
+    for (const key of ['price_per_gram', 'cost_per_gram', 'price_per_g', 'cost_per_g']) {
+      const n = numberOrNull(src[key]);
+      if (n != null && n >= 0) return n;
+    }
+    for (const key of ['price_per_kg', 'cost_per_kg']) {
+      const n = numberOrNull(src[key]);
+      if (n != null && n >= 0) return n / 1000;
+    }
+    const price = ['price', 'cost'].map(k => numberOrNull(src[k])).find(n => n != null);
+    const weight = ['weight', 'initial_weight', 'filament_weight', 'net_weight']
+      .map(k => numberOrNull(src[k])).find(n => n != null);
+    if (price != null && price >= 0 && weight != null && weight > 0) return price / weight;
+  }
+  return null;
+}
+
+function costForGrams(grams, spool) {
+  const g = numberOrNull(grams), rate = spoolPricePerGram(spool);
+  return g != null && g >= 0 && rate != null ? g * rate : null;
+}
+
+function sessionDuration(s) {
+  if (!s || !s.start_time) return null;
+  const start = Date.parse(s.start_time), end = s.end_time ? Date.parse(s.end_time) : Date.now();
+  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, (end - start) / 1000) : null;
+}
+
+function librarySpoolFor(file) {
+  const material = String(file && file.material || '').toLowerCase();
+  const usable = spools.filter(s => spoolPricePerGram(s) != null);
+  if (!usable.length) return null;
+  if (material) {
+    const same = usable.find(s => String((s.filament || {}).material || '').toLowerCase() === material);
+    if (same) return same;
+  }
+  return usable[0];
+}
+
 function fmtMM(mm) {
   if (mm == null) return '—';
   if (mm >= 1000) return (mm / 1000).toFixed(2).replace('.', ',') + ' m';
@@ -605,7 +652,7 @@ function renderStats(summaryData) {
 }
 
 function spoolById(id) {
-  const sp = spools.find(x => x.id === id);
+  const sp = spools.find(x => String(x.id) === String(id));
   if (!sp) return null;
   const f = sp.filament;
   return (f && f.name ? f.name : 'Spool') + ' (' + (sp.remaining_weight || 0) + 'g rest.)';
@@ -629,6 +676,12 @@ function renderSessions() {
     const div = document.createElement('div');
     div.className = 'session';
     const spoolName = s.spool_id ? (spoolById(s.spool_id) || 'Bobine #' + s.spool_id) : null;
+    const associatedSpool = s.spool_id ? spools.find(x => String(x.id) === String(s.spool_id)) : null;
+    const duration = sessionDuration(s);
+    const sessionCost = associatedSpool ? costForGrams(s.filament_grams, associatedSpool) : null;
+    const costLabel = associatedSpool
+      ? (sessionCost == null ? ' • Coût indisponible (prix/poids Spoolman)' : ' • Coût ≈ ' + sessionCost.toFixed(2) + ' €')
+      : ' • Coût absent (bobine non associée)';
     const thumbHtml = s.thumb_url
       ? '<img class="sess-thumb" src="' + s.thumb_url + '" alt="modèle" loading="lazy">'
       : '<div class="sess-thumb sess-thumb-none">🖨️</div>';
@@ -643,10 +696,12 @@ function renderSessions() {
             '<div class="sess-file">' + escapeHtml(s.file_name || 'inconnu') + '</div>' +
             '<div class="sess-meta">' +
               fmtDate(s.start_time) + (s.end_time ? ' → ' + fmtDate(s.end_time) : '') +
+              (duration != null ? ' • ⏱ ' + fmtTime(duration) : '') +
               (s.error ? ' • ❌ ' + escapeHtml(s.error) : '') +
               (spoolName ? ' • 🧵 ' + escapeHtml(spoolName) : '') +
               (s.filament_grams ? ' • ' + s.filament_grams + ' g' : '') +
               (s.material_mm ? ' • ' + Math.round(s.material_mm) + ' mm' : '') +
+              costLabel +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -893,6 +948,9 @@ async function loadK1Files() {
         '<div class="k1-mat">' +
           escapeHtml((f.material || '').replace(/;/g, ' + ')) +
           (f.grams ? ' • ⚖️ ' + f.grams + 'g' : '') +
+          (f.grams && librarySpoolFor(f) && costForGrams(f.grams, librarySpoolFor(f)) != null
+            ? ' • 💶 ≈ ' + costForGrams(f.grams, librarySpoolFor(f)).toFixed(2) + ' €'
+            : ' • 💶 Coût estimatif indisponible') +
           (f.time_s ? ' • ⏱ ' + fmtTime(f.time_s) : '') +
         '</div>' +
       '</div>').join('') +
