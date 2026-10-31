@@ -53,6 +53,7 @@ def init_db():
             material_mm REAL,
             spool_id INTEGER,
             filament_grams REAL,
+            filament_cost REAL,
             thumb TEXT,
             error TEXT,
             metadata TEXT
@@ -61,7 +62,7 @@ def init_db():
     con.commit()
     # Migration : ajoute les colonnes manquantes si la table existait déjà
     cols = {r[1] for r in con.execute("PRAGMA table_info(sessions)").fetchall()}
-    for cdef in ("material_mm REAL", "thumb TEXT"):
+    for cdef in ("material_mm REAL", "filament_cost REAL", "thumb TEXT"):
         col = cdef.split()[0]
         if col not in cols:
             con.execute(f"ALTER TABLE sessions ADD COLUMN {cdef}")
@@ -107,8 +108,9 @@ def add_session(sid, file_name, status, start_time):
 
 def update_session(sid, **fields):
     allowed = {"status", "end_time", "progress", "material_mm", "spool_id",
-               "filament_grams", "thumb", "error"}
-    keys = [k for k in fields if k in allowed and fields[k] is not None]
+               "filament_grams", "filament_cost", "thumb", "error"}
+    keys = [k for k in fields if k in allowed and
+            (fields[k] is not None or k == "filament_cost")]
     if not keys:
         return
     sets = ", ".join(f"{k} = ?" for k in keys)
@@ -139,16 +141,15 @@ def list_sessions(limit=300):
 
 
 def monthly_stats():
-    """Stats agrégées par mois (année-mois) : impressions, erreurs, filament (g),
-    durée totale (h), consommation moyenne par impression, dernière session."""
+    """Agrège les impressions par mois sans estimer les coûts inconnus."""
     from collections import OrderedDict
     con = db_conn()
-    cols = [d[0] for d in con.execute("SELECT * FROM sessions LIMIT 1").description]
-    rows = con.execute("SELECT start_time, end_time, status, filament_grams, material_mm "
-                       "FROM sessions").fetchall()
+    rows = con.execute(
+        "SELECT start_time, end_time, status, filament_grams, material_mm, filament_cost "
+        "FROM sessions").fetchall()
     con.close()
     months = OrderedDict()
-    for start_time, end_time, status, grams, mm in rows:
+    for start_time, end_time, status, grams, mm, cost in rows:
         if not start_time:
             continue
         try:
@@ -156,65 +157,72 @@ def monthly_stats():
         except Exception:
             continue
         key = d.strftime("%Y-%m")
-        # Nom du mois en français
         mois_fr = ["janvier", "février", "mars", "avril", "mai", "juin",
                    "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
-        label = f"{mois_fr[d.month - 1].capitalize()} {d.year}"
         m = months.setdefault(key, {
-            "month": key, "label": label, "prints": 0,
-            "completed": 0, "errors": 0, "stopped": 0, "grams": 0.0,
-            "mm": 0.0, "seconds": 0, "avg_grams": 0.0,
+            "month": key, "label": f"{mois_fr[d.month - 1].capitalize()} {d.year}",
+            "prints": 0, "completed": 0, "errors": 0, "stopped": 0,
+            "grams": 0.0, "mm": 0.0, "seconds": 0, "duration_prints": 0,
+            "cost_total": 0.0, "cost_known_prints": 0,
         })
         m["prints"] += 1
-        if status == "completed":
-            m["completed"] += 1
-        elif status == "error":
-            m["errors"] += 1
-        elif status == "stopped":
-            m["stopped"] += 1
-        try:
-            m["grams"] += float(grams or 0)
-        except (TypeError, ValueError):
-            pass
-        try:
-            m["mm"] += float(mm or 0)
-        except (TypeError, ValueError):
-            pass
+        if status == "completed": m["completed"] += 1
+        elif status == "error": m["errors"] += 1
+        elif status == "stopped": m["stopped"] += 1
+        try: m["grams"] += float(grams or 0)
+        except (TypeError, ValueError): pass
+        try: m["mm"] += float(mm or 0)
+        except (TypeError, ValueError): pass
+        if cost is not None:
+            try:
+                value = float(cost)
+                if value >= 0:
+                    m["cost_total"] += value
+                    m["cost_known_prints"] += 1
+            except (TypeError, ValueError): pass
         if end_time:
             try:
-                t0 = datetime.fromisoformat(start_time)
-                t1 = datetime.fromisoformat(end_time)
-                m["seconds"] += max(0, (t1 - t0).total_seconds())
-            except Exception:
-                pass
-    # ordre décroissant (mois récents en premier) + moyenne par impression
+                seconds = max(0, (datetime.fromisoformat(end_time) - d).total_seconds())
+                m["seconds"] += seconds
+                m["duration_prints"] += 1
+            except Exception: pass
     out = list(months.values())[::-1]
     for m in out:
         m["avg_grams"] = round(m["grams"] / m["prints"], 2) if m["prints"] else 0
-        m["grams"] = round(m["grams"], 2)
-        m["mm"] = round(m["mm"], 1)
-        m["seconds"] = int(m["seconds"])
-        m["hours"] = round(m["seconds"] / 3600, 1)
-    # Totaux globaux
+        m["avg_cost"] = round(m["cost_total"] / m["cost_known_prints"], 2) if m["cost_known_prints"] else None
+        m["avg_seconds"] = round(m["seconds"] / m["duration_prints"]) if m["duration_prints"] else None
+        m["grams"] = round(m["grams"], 2); m["mm"] = round(m["mm"], 1)
+        m["seconds"] = int(m["seconds"]); m["hours"] = round(m["seconds"] / 3600, 1)
+        m["avg_hours"] = round(m["avg_seconds"] / 3600, 2) if m["avg_seconds"] is not None else None
+        m.pop("duration_prints", None)
     total = {"prints": sum(m["prints"] for m in out),
-             "completed": sum(m["completed"] for m in out),
-             "errors": sum(m["errors"] for m in out),
-             "stopped": sum(m["stopped"] for m in out),
-             "grams": round(sum(m["grams"] for m in out), 2),
-             "mm": round(sum(m["mm"] for m in out), 1),
-             "hours": round(sum(m["hours"] for m in out), 1)}
+             "completed": sum(m["completed"] for m in out), "errors": sum(m["errors"] for m in out),
+             "stopped": sum(m["stopped"] for m in out), "grams": round(sum(m["grams"] for m in out), 2),
+             "mm": round(sum(m["mm"] for m in out), 1), "hours": round(sum(m["hours"] for m in out), 1),
+             "seconds": sum(m["seconds"] for m in out),
+             "cost_total": round(sum(m["cost_total"] for m in out), 2),
+             "cost_known_prints": sum(m["cost_known_prints"] for m in out)}
+    total["avg_cost"] = round(total["cost_total"] / total["cost_known_prints"], 2) if total["cost_known_prints"] else None
+    total["avg_seconds"] = round(total["seconds"] / sum(1 for r in rows if r[1])) if any(r[1] for r in rows) else None
+    total["avg_hours"] = round(total["avg_seconds"] / 3600, 2) if total["avg_seconds"] is not None else None
     return {"months": out, "total": total}
 
 
 def summary_stats():
-    """Return dashboard totals without the journal pagination limit."""
+    """Totaux dashboard, en conservant les champs historiques."""
     con = db_conn()
-    row = con.execute("SELECT COUNT(*), SUM(status = 'completed'), SUM(status = 'error'), SUM(status = 'stopped'), SUM(COALESCE(filament_grams, 0)) FROM sessions").fetchone()
+    row = con.execute("SELECT COUNT(*), SUM(status = 'completed'), SUM(status = 'error'), SUM(status = 'stopped'), SUM(COALESCE(filament_grams, 0)), SUM(filament_cost), SUM(filament_cost IS NOT NULL), SUM(CASE WHEN end_time IS NOT NULL THEN max(0, (julianday(end_time) - julianday(start_time)) * 86400) ELSE 0 END), SUM(end_time IS NOT NULL) FROM sessions").fetchone()
     con.close()
-    total, completed, errors, stopped, grams = row
+    total, completed, errors, stopped, grams, cost_total, cost_known, duration, duration_prints = row
     finished = (completed or 0) + (errors or 0) + (stopped or 0)
+    duration = int(round(duration or 0))
     return {"total": total or 0, "completed": completed or 0, "errors": errors or 0,
-            "grams": round(grams or 0, 2), "finished": finished}
+            "grams": round(grams or 0, 2), "finished": finished,
+            "cost_total": round(cost_total or 0, 2), "cost_known_prints": cost_known or 0,
+            "avg_cost": round((cost_total or 0) / cost_known, 2) if cost_known else None,
+            "duration_seconds": duration, "duration_hours": round(duration / 3600, 1),
+            "avg_duration_seconds": round(duration / duration_prints) if duration_prints else None,
+            "avg_duration_hours": round(duration / duration_prints / 3600, 2) if duration_prints else None}
 
 
 async def api_summary(request):
@@ -573,24 +581,24 @@ async def api_sessions_attach(request):
     if not sess:
         return aiohttp.web.json_response({"error": "session introuvable"}, status=404)
 
-    # Conversion automatique material_mm → grammes via densité du filament
-    if grams is None and sess.get("material_mm") and spool_id:
+    # Récupère la bobine une fois : densité et prix sont capturés au moment de l'association.
+    spool_detail = None
+    if spool_id:
         try:
             async with aiohttp.ClientSession() as client:
                 res, status = await spoolman_get(client, f"/spool/{spool_id}")
-                density = None
                 if status == 200 and isinstance(res, dict):
-                    fil = res.get("filament") or {}
-                    density = fil.get("density")
-                if density:
-                    from gcode_parser import mm_to_grams
-                    grams = mm_to_grams(float(sess["material_mm"]), density=density or 1.24)
-                    log.info("Conversion auto: %s mm × densité %s = %s g", sess["material_mm"], density, grams)
+                    spool_detail = res
+                    density = (res.get("filament") or {}).get("density")
+                    if grams is None and sess.get("material_mm") and density:
+                        from gcode_parser import mm_to_grams
+                        grams = mm_to_grams(float(sess["material_mm"]), density=density)
+                        log.info("Conversion auto: %s mm × densité %s = %s g", sess["material_mm"], density, grams)
         except Exception as exc:
-            # Spoolman down : on associe quand même la bobine, sans conversion
-            log.warning("Spoolman injoignable (conversion densité): %s", exc)
+            log.warning("Spoolman injoignable (association): %s", exc)
 
-    update_session(sid, spool_id=spool_id, filament_grams=grams)
+    cost = estimate_filament_cost(grams, spool_detail)
+    update_session(sid, spool_id=spool_id, filament_grams=grams, filament_cost=cost)
     # décompte Spoolman (désactivé via debit=false)
     if spool_id and grams and debit:
         try:

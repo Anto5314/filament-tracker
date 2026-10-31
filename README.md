@@ -39,8 +39,8 @@ Votre K1SE tourne sous **CrealityOS** (Klipper **sans Moonraker**) : il n'existe
 |---|---|---|
 | 📋 | **Journal automatique** | Chaque impression démarre une session : fichier, heure, statut (terminée / arrêtée / erreur), durée, filament mesuré (`usedMaterialLength`), et coût calculé depuis la bobine Spoolman associée |
 | 📜 | **Import rétroactif** | L'historique complet de l'imprimante (`historyList`) est importé automatiquement — toutes les impressions passées apparaissent dans le journal |
-| 📊 | **Dashboard imprimante** | État temps réel : connexion WS, températures buse/plateau, fichier en cours, statistiques globales — rafraîchi toutes les 6 s |
-| 📈 | **Stats mensuelles** | Onglet dédié : impressions / mois, filament consommé (g), durée d'impression, taux de réussite — avec graphique en barres |
+| 📊 | **Dashboard imprimante** | État temps réel : connexion WS, températures buse/plateau, fichier en cours, statistiques globales, coût filament connu et durée totale/moyenne — rafraîchi toutes les 6 s |
+| 📈 | **Stats mensuelles** | Onglet dédié : impressions / mois, filament consommé (g), durée, taux de réussite, coûts connus et coûts moyens — sans estimation lorsque la bobine ou son prix manque |
 | 🖼️ | **Miniatures des modèles** | Téléchargées depuis l'imprimante (`/downloads/humbnail/*.png` — oui, avec la faute de frappe du firmware !) et affichées dans l'onglet « Filaments » |
 | ⚖️ | **Quantité par modèle** | Le champ `filamentWeight` du slicer est lu pour chaque fichier : matière + grammes estimés + durée d'impression |
 | 🧵 | **Association bobine → impression** | Depuis le journal ou l'onglet Filaments, choisissez la bobine utilisée → décompte automatique dans Spoolman |
